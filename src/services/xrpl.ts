@@ -163,22 +163,20 @@ class XRPLService {
     }
   }
 
-  async sendXRP(
-    destination: string,
-    amount: number,
-    destinationTag?: number,
-    fee?: string
-  ): Promise<string> {
+  async sendXRP(params: {
+    amount: string;
+    destination: string;
+    destinationTag?: number;
+    fee: string;
+  }): Promise<string> {
     if (!this.client?.isConnected() || !this.wallet) {
       throw new Error(
         'Not connected to network or wallet not initialized. Please try reconnecting.'
       );
     }
 
-    const amountInXRP = Number(amount);
-    if (isNaN(amountInXRP) || amountInXRP <= 0) {
-      throw new Error('Invalid amount. Please enter a valid number.');
-    }
+    const amountInDrops = xrpToDrops(params.amount);
+    const feeInDrops = xrpToDrops(params.fee);
 
     try {
       const currentLedger = await this.client.getLedgerIndex();
@@ -193,27 +191,26 @@ class XRPLService {
       const transaction: Payment = {
         TransactionType: 'Payment',
         Account: this.wallet.address,
-        Destination: destination,
-        Amount: xrpToDrops(amountInXRP),
-        DestinationTag: destinationTag,
-        LastLedgerSequence: currentLedger + 10,
+        Destination: params.destination,
+        Amount: amountInDrops,
         Sequence: nextSequence,
+        LastLedgerSequence: currentLedger + 10,
+        Fee: feeInDrops,
       };
 
-      const prepared = await this.client.autofill(transaction);
-
-      if (fee) {
-        prepared.Fee = xrpToDrops(Number(fee));
+      if (params.destinationTag) {
+        transaction.DestinationTag = params.destinationTag;
       }
 
+      const prepared = await this.client.autofill(transaction);
       const signed = this.wallet.sign(prepared);
       const result: SubmitResponse = await this.client.submitAndWait(signed.tx_blob);
 
-      if (result.resultCode !== 'tesSUCCESS') {
-        throw new Error(`Transaction failed: ${result.resultMessage || 'Unknown error'}`);
+      if (result.result.meta?.TransactionResult !== 'tesSUCCESS') {
+        throw new Error(`Transaction failed: ${result.result.meta?.TransactionResult}`);
       }
 
-      return result.tx_json.hash;
+      return result.result.hash;
     } catch (error: any) {
       console.error('Failed to send XRP:', error);
       throw new Error(error.message || 'Failed to send XRP. Please try again.');

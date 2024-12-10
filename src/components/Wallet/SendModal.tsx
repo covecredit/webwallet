@@ -190,7 +190,7 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
 
         <div className="pt-4">
           <button
-            onClick={handleSend}
+            onClick={handleConfirm}
             disabled={isSending}
             className="w-full px-4 py-3 bg-primary text-background rounded-lg font-medium
                      hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -203,7 +203,7 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
       <SendConfirmationDialog
         isOpen={showConfirmation}
         onClose={() => setShowConfirmation(false)}
-        onConfirm={handleConfirm}
+        onConfirm={handleSend}
         address={address}
         amount={amount}
         fee={fee}
