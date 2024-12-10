@@ -25,6 +25,11 @@ const SendConfirmationDialog: React.FC<SendConfirmationDialogProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const handleConfirm = () => {
+    onConfirm();
+    onClose(); // Close the confirmation dialog immediately
+  };
+
   return (
     <Modal title="Confirm Transaction" onClose={onClose}>
       <div className="space-y-6">
@@ -61,10 +66,12 @@ const SendConfirmationDialog: React.FC<SendConfirmationDialogProps> = ({
                 {(Number(amount) + Number(fee)).toFixed(6)} XRP
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-text/70">Destination Tag</span>
-              <span className="text-primary font-medium">{destinationTag || 'N/A'}</span>
-            </div>
+            {destinationTag && (
+              <div className="flex justify-between">
+                <span className="text-text/70">Destination Tag</span>
+                <span className="text-primary font-medium">{destinationTag}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end space-x-2">
@@ -75,7 +82,7 @@ const SendConfirmationDialog: React.FC<SendConfirmationDialogProps> = ({
               Cancel
             </button>
             <button
-              onClick={onConfirm}
+              onClick={handleConfirm}
               className="px-4 py-2 bg-primary text-background rounded-lg font-medium hover:bg-primary/90 transition-colors"
             >
               Confirm
