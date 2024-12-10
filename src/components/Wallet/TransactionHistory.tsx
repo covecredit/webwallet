@@ -86,62 +86,62 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
     link.click();
   };
 
+  const fetchTransactions = async () => {
+    if (!address) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const client = xrplService.getClient();
+      if (!client) throw new Error('Not connected to network');
+
+      const response = await client.request({
+        command: 'account_tx',
+        account: address,
+        limit: 100,
+      });
+
+      const txs = response.result.transactions.map((tx: any) => {
+        const transaction = tx.tx;
+        const meta = tx.meta;
+
+        const memos = transaction.Memos?.map((memo: any) => ({
+          type: memo.Memo.MemoType
+            ? Buffer.from(memo.Memo.MemoType, 'hex').toString('utf8')
+            : undefined,
+          data: memo.Memo.MemoData
+            ? Buffer.from(memo.Memo.MemoData, 'hex').toString('utf8')
+            : undefined,
+          format: memo.Memo.MemoFormat
+            ? Buffer.from(memo.Memo.MemoFormat, 'hex').toString('utf8')
+            : undefined,
+        }));
+
+        return {
+          type: transaction.TransactionType,
+          hash: transaction.hash,
+          date: transaction.date || tx.date, // Ensure date is correctly assigned
+          amount: transaction.Amount ? dropsToXrp(transaction.Amount) : undefined,
+          fee: dropsToXrp(transaction.Fee),
+          sender: transaction.Account,
+          receiver: transaction.Destination,
+          result: meta.TransactionResult,
+          sequence: transaction.Sequence,
+          memos,
+        };
+      });
+
+      setTransactions(txs);
+    } catch (error: any) {
+      console.error('Failed to fetch transactions:', error);
+      setError(error.message || 'Failed to fetch transactions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchTransactions = async () => {
-      if (!address) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const client = xrplService.getClient();
-        if (!client) throw new Error('Not connected to network');
-
-        const response = await client.request({
-          command: 'account_tx',
-          account: address,
-          limit: 100,
-        });
-
-        const txs = response.result.transactions.map((tx: any) => {
-          const transaction = tx.tx;
-          const meta = tx.meta;
-
-          const memos = transaction.Memos?.map((memo: any) => ({
-            type: memo.Memo.MemoType
-              ? Buffer.from(memo.Memo.MemoType, 'hex').toString('utf8')
-              : undefined,
-            data: memo.Memo.MemoData
-              ? Buffer.from(memo.Memo.MemoData, 'hex').toString('utf8')
-              : undefined,
-            format: memo.Memo.MemoFormat
-              ? Buffer.from(memo.Memo.MemoFormat, 'hex').toString('utf8')
-              : undefined,
-          }));
-
-          return {
-            type: transaction.TransactionType,
-            hash: transaction.hash,
-            date: tx.date,
-            amount: transaction.Amount ? dropsToXrp(transaction.Amount) : undefined,
-            fee: dropsToXrp(transaction.Fee),
-            sender: transaction.Account,
-            receiver: transaction.Destination,
-            result: meta.TransactionResult,
-            sequence: transaction.Sequence,
-            memos,
-          };
-        });
-
-        setTransactions(txs);
-      } catch (error: any) {
-        console.error('Failed to fetch transactions:', error);
-        setError(error.message || 'Failed to fetch transactions');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchTransactions();
 
     const client = xrplService.getClient();
@@ -189,28 +189,27 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
                 className="p-1 hover:bg-primary/20 rounded transition-colors"
               >
                 {copiedItem === `address-${address}` ? (
-                  <Check className="w-4 h-4 text-green-400" />
+                  <Check className="w-3 h-3 text-green-400" />
                 ) : (
-                  <Copy className="w-4 h-4 text-primary" />
+                  <Copy className="w-3 h-3 text-primary" />
                 )}
               </button>
             </div>
           </div>
           <button
             onClick={exportToCSV}
-            className="flex items-center space-x-2 px-3 py-1.5 bg-primary/20 hover:bg-primary/30 rounded-lg transition-colors text-primary"
+            className="px-4 py-2 bg-primary text-background rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
-            <span>Export CSV</span>
+            Export CSV
           </button>
         </div>
-
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-text text-opacity-50">Loading...</div>
             </div>
           ) : error ? (
-            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="text-center text-text text-opacity-50 p-4">
               <p className="text-sm text-red-500">{error}</p>
             </div>
           ) : transactions.length === 0 ? (
@@ -253,7 +252,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
                                 e.stopPropagation();
                                 handleCopy(tx.sender, 'sender');
                               }}
-                              className="p-1 hover:bg-primary/20 rounded transition-colors"
+                              className="flex-shrink-0 p-1 hover:bg-primary/20 rounded transition-colors"
                             >
                               {copiedItem === `sender-${tx.sender}` ? (
                                 <Check className="w-3 h-3 text-green-400" />
@@ -264,24 +263,22 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          {tx.receiver && (
-                            <div className="flex items-center space-x-1 max-w-[200px] overflow-hidden">
-                              <span className="font-mono text-sm truncate">{tx.receiver}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCopy(tx.receiver!, 'receiver');
-                                }}
-                                className="flex-shrink-0 p-1 hover:bg-primary hover:bg-opacity-20 rounded transition-colors"
-                              >
-                                {copiedItem === `receiver-${tx.receiver}` ? (
-                                  <Check className="w-3 h-3 text-green-400" />
-                                ) : (
-                                  <Copy className="w-3 h-3 text-primary" />
-                                )}
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex items-center space-x-1 max-w-[200px] overflow-hidden">
+                            <span className="font-mono text-sm truncate">{tx.receiver}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(tx.receiver!, 'receiver');
+                              }}
+                              className="flex-shrink-0 p-1 hover:bg-primary/20 rounded transition-colors"
+                            >
+                              {copiedItem === `receiver-${tx.receiver}` ? (
+                                <Check className="w-3 h-3 text-green-400" />
+                              ) : (
+                                <Copy className="w-3 h-3 text-primary" />
+                              )}
+                            </button>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-text">
                           {tx.amount ? `${tx.amount} XRP` : '-'}
