@@ -4,7 +4,7 @@ import { useThemeStore } from '../../../store/themeStore';
 import { themes } from '../../../constants/theme';
 import { hexToRgb } from '../../../utils/color';
 import { formatTimestamp } from '../../../utils/date';
-import type { PriceData } from '../../../types';
+import { PriceData } from '../../../types';
 
 interface CandlestickChartProps {
   data: PriceData[];
@@ -49,15 +49,18 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
 
     if (exchange === 'All') {
       const seriesData = param.seriesData;
-      if (!seriesData) return;
+      if (!seriesData?.size) return;
       
       content += Array.from(seriesData.entries()).map(([series, value]) => {
+        if (!series?.options) return '';
         const exchange = series.options().title as string;
-        return `<div style="color: ${colors.primary}">${exchange}: $${value?.value?.toFixed(4) || 'N/A'}</div>`;
-      }).join('');
+        const color = series.options().color as string;
+        return value?.value !== undefined ? 
+          `<div style="color: ${color}">${exchange}: $${value.value.toFixed(4)}</div>` : '';
+      }).filter(Boolean).join('');
     } else if (exchange === 'Bitstamp') {
       const data = param.seriesData?.get(lineSeriesRefs.current.get('Bitstamp'));
-      if (data?.value) {
+      if (data?.value !== undefined) {
         content += `<div>Price: $${data.value.toFixed(4)}</div>`;
       }
     } else {
@@ -80,7 +83,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
     const top = Math.min(param.point.y + 12, box.height - tooltip.offsetHeight - 12);
     tooltip.style.left = `${left}px`;
     tooltip.style.top = `${top}px`;
-  }, [exchange, colors.primary]);
+  }, [exchange]);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -114,8 +117,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
           style: 0,
         },
       },
-      width: chartContainerRef.current.clientWidth,
-      height: chartContainerRef.current.clientHeight,
       handleScale: {
         mouseWheel: true,
         pinch: true,
@@ -192,7 +193,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
             precision: 4,
             minMove: 0.0001,
           },
-          crosshairMarkerVisible: false,
+          crosshairMarkerVisible: true,
+          lastValueVisible: true,
+          priceLineVisible: false,
         });
 
         const sortedData = prices
@@ -214,7 +217,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
           precision: 4,
           minMove: 0.0001,
         },
-        crosshairMarkerVisible: false,
+        crosshairMarkerVisible: true,
+        lastValueVisible: true,
       });
 
       const areaSeries = chartRef.current.addAreaSeries({
@@ -242,29 +246,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
       lineSeries.setData(lineData);
       areaSeries.setData(lineData);
       lineSeriesRefs.current.set('Bitstamp', lineSeries);
-
-      if (lineData.length > 0) {
-        const highPrice = Math.max(...lineData.map(d => d.value));
-        const lowPrice = Math.min(...lineData.map(d => d.value));
-
-        lineSeries.createPriceLine({
-          price: highPrice,
-          color: '#26a69a',
-          lineWidth: 1,
-          lineStyle: 2,
-          axisLabelVisible: true,
-          title: 'Last High'
-        });
-
-        lineSeries.createPriceLine({
-          price: lowPrice,
-          color: '#ef5350',
-          lineWidth: 1,
-          lineStyle: 2,
-          axisLabelVisible: true,
-          title: 'Last Low'
-        });
-      }
     } else {
       const candleSeries = chartRef.current.addCandlestickSeries({
         upColor: '#26a69a',
@@ -282,10 +263,10 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
       const candleData = validData
         .map(d => ({
           time: Math.floor(d.timestamp / 1000),
-          open: d.open || d.lastPrice || 0,
-          high: d.high || d.lastPrice || 0,
-          low: d.low || d.lastPrice || 0,
-          close: d.close || d.lastPrice || 0
+          open: d.lastPrice || 0,
+          high: d.ask || d.high || d.lastPrice || 0,
+          low: d.bid || d.low || d.lastPrice || 0,
+          close: d.ask || d.lastPrice || 0
         }))
         .sort((a, b) => a.time - b.time)
         .filter((item, index, self) => 
@@ -294,29 +275,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
 
       candleSeries.setData(candleData);
       seriesRef.current = candleSeries;
-
-      if (candleData.length > 0) {
-        const highPrice = Math.max(...candleData.map(d => d.high));
-        const lowPrice = Math.min(...candleData.map(d => d.low));
-
-        candleSeries.createPriceLine({
-          price: highPrice,
-          color: '#26a69a',
-          lineWidth: 1,
-          lineStyle: 2,
-          axisLabelVisible: true,
-          title: '24h High'
-        });
-
-        candleSeries.createPriceLine({
-          price: lowPrice,
-          color: '#ef5350',
-          lineWidth: 1,
-          lineStyle: 2,
-          axisLabelVisible: true,
-          title: '24h Low'
-        });
-      }
     }
 
     chartRef.current.timeScale().fitContent();

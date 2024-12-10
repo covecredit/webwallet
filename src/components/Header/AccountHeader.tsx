@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Key, Lock, Trash2, Settings } from 'lucide-react';
+import { Key, Lock, Trash2, Settings, Plus } from 'lucide-react';
 import { useWalletStore } from '../../store/walletStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import ConnectWalletModal from '../Wallet/ConnectWalletModal';
+import NewWalletModal from '../Wallet/NewWalletModal';
 import ForgetMeModal from './ForgetMeModal';
 import SettingsModal from './SettingsModal';
 import { clearStorage } from '../../utils/storage';
@@ -11,6 +12,7 @@ import { clearStorage } from '../../utils/storage';
 const AccountHeader: React.FC = () => {
   const { isConnected, disconnect } = useWalletStore();
   const [showConnectModal, setShowConnectModal] = useState(false);
+  const [showNewWalletModal, setShowNewWalletModal] = useState(false);
   const [showForgetMeModal, setShowForgetMeModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -18,6 +20,11 @@ const AccountHeader: React.FC = () => {
   const handleConnect = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowConnectModal(true);
+  };
+
+  const handleNewWallet = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowNewWalletModal(true);
   };
 
   const handleDisconnect = (e: React.MouseEvent) => {
@@ -37,10 +44,7 @@ const AccountHeader: React.FC = () => {
 
   return (
     <>
-      <div 
-        className={`flex items-center ${isMobile ? 'space-x-2' : 'space-x-4'}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="flex items-center space-x-2">
         {isConnected ? (
           <>
             <motion.div
@@ -61,7 +65,7 @@ const AccountHeader: React.FC = () => {
             </motion.button>
           </>
         ) : (
-          <>
+          <div className="flex flex-wrap items-center gap-2">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -78,28 +82,40 @@ const AccountHeader: React.FC = () => {
               <Key className="w-4 h-4 md:w-5 md:h-5" />
               <span>Connect</span>
             </motion.button>
-          </>
+            <motion.button 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              onClick={handleNewWallet}
+              className="flex items-center space-x-2 hover:text-primary text-primary/70 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-colors duration-200 text-sm md:text-base"
+            >
+              <Plus className="w-4 h-4 md:w-5 md:h-5" />
+              <span>New Wallet</span>
+            </motion.button>
+          </div>
         )}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleForgetMe}
-          className="p-2 rounded-lg hover:text-primary text-primary/70 transition-colors duration-200"
-        >
-          <Trash2 className="w-5 h-5 md:w-6 md:h-6" />
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowSettingsModal(true)}
-          className="p-2 rounded-lg hover:text-primary text-primary/70 transition-colors duration-200"
-        >
-          <Settings className="w-5 h-5 md:w-6 md:h-6" />
-        </motion.button>
+        <div className="flex items-center space-x-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleForgetMe}
+            className="p-2 rounded-lg hover:text-primary text-primary/70 transition-colors duration-200"
+          >
+            <Trash2 className="w-5 h-5 md:w-6 md:h-6" />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowSettingsModal(true)}
+            className="p-2 rounded-lg hover:text-primary text-primary/70 transition-colors duration-200"
+          >
+            <Settings className="w-5 h-5 md:w-6 md:h-6" />
+          </motion.button>
+        </div>
       </div>
 
       <AnimatePresence>
         {showConnectModal && <ConnectWalletModal onClose={() => setShowConnectModal(false)} />}
+        {showNewWalletModal && <NewWalletModal onClose={() => setShowNewWalletModal(false)} />}
         {showForgetMeModal && (
           <ForgetMeModal
             isOpen={showForgetMeModal}

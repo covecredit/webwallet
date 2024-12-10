@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { PriceData } from '../../../types';
 import type { ExchangeName } from '../../../services/exchanges';
+import { formatValue, formatVolume } from '../../../utils/format';
 
 interface PriceStatsProps {
   exchangeData: Record<string, PriceData[]>;
@@ -9,18 +10,6 @@ interface PriceStatsProps {
 }
 
 const PriceStats: React.FC<PriceStatsProps> = ({ exchangeData, selectedExchange }) => {
-  const formatValue = (value: number | undefined): string => {
-    if (typeof value !== 'number' || isNaN(value)) return 'N/A';
-    return value.toFixed(4);
-  };
-
-  const formatVolume = (volume: number | undefined): string => {
-    if (typeof volume !== 'number' || isNaN(volume)) return 'N/A';
-    if (volume >= 1000000) return `${(volume / 1000000).toFixed(2)}M`;
-    if (volume >= 1000) return `${(volume / 1000).toFixed(2)}K`;
-    return volume.toFixed(2);
-  };
-
   const getLatestData = (): PriceData | null => {
     if (selectedExchange === 'All') {
       let totalVolume = 0;
@@ -52,56 +41,43 @@ const PriceStats: React.FC<PriceStatsProps> = ({ exchangeData, selectedExchange 
   };
 
   const latestData = getLatestData();
+  if (!latestData) return null;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
       <div className="bg-background/50 rounded-lg p-3 border border-primary/30">
         <div className="text-text/70 mb-1">Last Price</div>
         <div className="text-lg font-bold text-primary">
-          ${formatValue(latestData?.lastPrice)}
+          ${formatValue(latestData.lastPrice)}
         </div>
       </div>
 
       <div className="bg-background/50 rounded-lg p-3 border border-primary/30">
         <div className="text-text/70 mb-1">24h Volume</div>
         <div className="text-lg font-bold text-primary">
-          {formatVolume(latestData?.volume)} XRP
+          {formatVolume(latestData.volume)} XRP
         </div>
       </div>
 
-      <div className="bg-background/50 rounded-lg p-3 border border-primary/30">
-        <div className="text-text/70 mb-1">24h High</div>
-        <div className="text-lg font-bold text-primary">
-          ${formatValue(latestData?.high)}
-        </div>
-      </div>
-
-      <div className="bg-background/50 rounded-lg p-3 border border-primary/30">
-        <div className="text-text/70 mb-1">24h Low</div>
-        <div className="text-lg font-bold text-primary">
-          ${formatValue(latestData?.low)}
-        </div>
-      </div>
-
-      {latestData?.bid && (
+      {typeof latestData.high === 'number' && (
         <div className="bg-background/50 rounded-lg p-3 border border-primary/30">
-          <div className="text-text/70 mb-1">Bid</div>
+          <div className="text-text/70 mb-1">24h High</div>
           <div className="text-lg font-bold text-primary">
-            ${formatValue(latestData.bid)}
+            ${formatValue(latestData.high)}
           </div>
         </div>
       )}
 
-      {latestData?.ask && (
+      {typeof latestData.low === 'number' && (
         <div className="bg-background/50 rounded-lg p-3 border border-primary/30">
-          <div className="text-text/70 mb-1">Ask</div>
+          <div className="text-text/70 mb-1">24h Low</div>
           <div className="text-lg font-bold text-primary">
-            ${formatValue(latestData.ask)}
+            ${formatValue(latestData.low)}
           </div>
         </div>
       )}
 
-      {latestData?.dailyChangePercent !== undefined && (
+      {typeof latestData.dailyChangePercent === 'number' && (
         <div className="bg-background/50 rounded-lg p-3 border border-primary/30">
           <div className="text-text/70 mb-1">24h Change</div>
           <div className={`text-lg font-bold flex items-center space-x-1 ${
@@ -113,15 +89,6 @@ const PriceStats: React.FC<PriceStatsProps> = ({ exchangeData, selectedExchange 
               <TrendingDown className="w-5 h-5" />
             )}
             <span>{Math.abs(latestData.dailyChangePercent).toFixed(2)}%</span>
-          </div>
-        </div>
-      )}
-
-      {latestData?.vwap && (
-        <div className="bg-background/50 rounded-lg p-3 border border-primary/30">
-          <div className="text-text/70 mb-1">24h VWAP</div>
-          <div className="text-lg font-bold text-primary">
-            ${formatValue(latestData.vwap)}
           </div>
         </div>
       )}

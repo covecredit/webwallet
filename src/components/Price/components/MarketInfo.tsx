@@ -5,11 +5,11 @@ interface MarketData {
   rank?: number;
   supply?: number;
   maxSupply?: number;
-  marketCap?: number;
-  volume24h?: number;
-  price?: number;
-  changePercent24h?: number;
-  vwap24h?: number;
+  marketCapUsd?: number;
+  volumeUsd24Hr?: number;
+  priceUsd?: number;
+  changePercent24Hr?: number;
+  vwap24Hr?: number;
 }
 
 interface MarketInfoProps {
@@ -47,11 +47,11 @@ const MarketInfo: React.FC<MarketInfoProps> = ({ data }) => {
           </div>
           <div className="text-right">
             <div className="text-primary font-bold">
-              {data?.supply ? formatNumber(data.supply, 0) : 'N/A'} XRP
+              {data?.supply ? formatNumber(data.supply, 0) : 'N/A'}
             </div>
             {data?.maxSupply && (
               <div className="text-xs text-text text-opacity-50">
-                Max: {formatNumber(data.maxSupply, 0)} XRP
+                Max: {formatNumber(data.maxSupply, 0)}
               </div>
             )}
           </div>
@@ -65,7 +65,7 @@ const MarketInfo: React.FC<MarketInfoProps> = ({ data }) => {
             <span className="text-text text-opacity-70">Market Cap</span>
           </div>
           <span className="text-primary font-bold">
-            {formatNumber(data?.marketCap)}
+            {formatNumber(data?.marketCapUsd)}
           </span>
         </div>
       </div>
@@ -76,17 +76,17 @@ const MarketInfo: React.FC<MarketInfoProps> = ({ data }) => {
             <BarChart2 className="w-4 h-4 text-primary" />
             <span className="text-text text-opacity-70">24h Change</span>
           </div>
-          {typeof data?.changePercent24h === 'number' ? (
+          {typeof data?.changePercent24Hr === 'number' ? (
             <div className={`flex items-center space-x-1 ${
-              data.changePercent24h >= 0 ? 'text-green-400' : 'text-red-400'
+              data.changePercent24Hr >= 0 ? 'text-green-400' : 'text-red-400'
             }`}>
-              {data.changePercent24h >= 0 ? (
+              {data.changePercent24Hr >= 0 ? (
                 <TrendingUp className="w-4 h-4" />
               ) : (
                 <TrendingDown className="w-4 h-4" />
               )}
               <span className="font-bold">
-                {Math.abs(data.changePercent24h).toFixed(2)}%
+                {Math.abs(data.changePercent24Hr).toFixed(2)}%
               </span>
             </div>
           ) : (

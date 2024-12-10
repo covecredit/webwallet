@@ -7,3 +7,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+declare module 'randombytes' {
+  export default function randomBytes(size: number): Buffer;
+}

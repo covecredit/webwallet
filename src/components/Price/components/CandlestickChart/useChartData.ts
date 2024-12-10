@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ThemeColors } from '../../../../types/theme';
 import { PriceData } from '../../../../types';
@@ -12,23 +12,14 @@ interface ProcessChartDataParams {
   existingLines: Map<string, ISeriesApi<"Line">>;
 }
 
-// Generate random colors for exchanges
-function generateRandomColor(): string {
-  const hue = Math.floor(Math.random() * 360);
-  const saturation = 70 + Math.random() * 20;
-  const lightness = 45 + Math.random() * 10;
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-}
+// Define fixed colors for exchanges
+const EXCHANGE_COLORS = {
+  Bitfinex: '#FF6B6B',  // Coral red
+  Bitstamp: '#4ECB71',  // Green
+  Kraken: '#6B8AFF'     // Blue
+};
 
 export const useChartData = () => {
-  const exchangeColors = useMemo(() => {
-    const colors = new Map<string, string>();
-    ['Bitfinex', 'Bitstamp', 'Kraken'].forEach(exchange => {
-      colors.set(exchange, generateRandomColor());
-    });
-    return colors;
-  }, []);
-
   const processChartData = useCallback(({
     chart,
     data,
@@ -69,7 +60,7 @@ export const useChartData = () => {
         if (!prices.length) return;
         
         const series = chart.addLineSeries({
-          color: exchangeColors.get(exch) || generateRandomColor(),
+          color: EXCHANGE_COLORS[exch as keyof typeof EXCHANGE_COLORS] || colors.primary,
           lineWidth: 2,
           title: exch,
           priceFormat: {
@@ -78,9 +69,8 @@ export const useChartData = () => {
             minMove: 0.0001,
           },
           crosshairMarkerVisible: true,
-          lineType: 0,
-          priceLineVisible: false,
           lastValueVisible: true,
+          priceLineVisible: false,
         });
 
         const sortedData = prices
@@ -104,7 +94,8 @@ export const useChartData = () => {
           precision: 4,
           minMove: 0.0001,
         },
-        crosshairMarkerVisible: false,
+        crosshairMarkerVisible: true,
+        lastValueVisible: true,
       });
 
       const areaSeries = chart.addAreaSeries({
@@ -165,7 +156,7 @@ export const useChartData = () => {
       candleSeries.setData(candleData);
       return { series: candleSeries, lines: new Map() };
     }
-  }, [exchangeColors]);
+  }, []);
 
   return { processChartData };
 };

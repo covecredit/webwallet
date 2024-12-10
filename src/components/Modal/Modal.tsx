@@ -8,9 +8,10 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
+  maxWidth?: string;
 }
 
-const Modal: React.FC<ModalProps> = ({ title, children, onClose }) => {
+const Modal: React.FC<ModalProps> = ({ title, children, onClose, maxWidth = 'max-w-md' }) => {
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -34,7 +35,7 @@ const Modal: React.FC<ModalProps> = ({ title, children, onClose }) => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 20 }}
-          className="relative bg-background border border-primary/30 rounded-lg shadow-xl max-w-md w-full mx-auto z-[101]"
+          className={`relative bg-background border border-primary/30 rounded-lg shadow-xl w-full mx-auto z-[101] ${maxWidth}`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between p-4 border-b border-primary/30">

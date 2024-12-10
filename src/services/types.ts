@@ -1,25 +1,25 @@
-import { NetworkConfig } from '../../types/network';
-import { ThemeName } from '../../types/theme';
+import { Transaction } from 'xrpl';
 
-export interface StorageData {
-  theme: ThemeName;
-  seed: string | null;
-  network: NetworkConfig | null;
-  widgets: {
-    id: string;
-    isVisible: boolean;
-    isMinimized: boolean;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    zIndex: number;
-  }[];
+export interface GraphNode {
+  id: string;
+  label: string;
+  type: 'wallet' | 'transaction' | 'ledger';
+  data?: any;
 }
 
-export interface StorageService {
-  get<K extends keyof StorageData>(key: K): StorageData[K];
-  set<K extends keyof StorageData>(key: K, value: StorageData[K]): void;
-  remove(key: keyof StorageData): void;
-  clear(): void;
+export interface GraphLink {
+  source: string;
+  target: string;
+  type?: string;
+  data?: any;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
+
+export interface TransactionGraphOptions {
+  limit?: number;
+  includeDetails?: boolean;
 }

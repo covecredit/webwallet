@@ -18,7 +18,10 @@ class GraphService {
     return GraphService.instance;
   }
 
-  async buildTransactionGraph(address: string, options: TransactionGraphOptions = {}): Promise<GraphData> {
+  async buildTransactionGraph(
+    searchTerm: string, 
+    options: TransactionGraphOptions = {}
+  ): Promise<GraphData> {
     const client = xrplService.getClient();
     if (!client) {
       throw new Error('Not connected to network');
@@ -27,142 +30,87 @@ class GraphService {
     try {
       this.builder.clear();
 
-      // Get account info for the main address
-      try {
-        const accountInfo = await client.request({
-          command: 'account_info',
-          account: address,
-          ledger_index: 'validated'
-        });
-        const balance = dropsToXrp(accountInfo.result.account_data.Balance);
-        this.builder.setAccountBalance(address, balance);
-      } catch (error) {
-        console.warn('Could not fetch balance for', address);
-      }
-
-      // Add the main account node
-      this.builder.addNode({
-        id: address,
-        label: `Account: ${address}`,
-        type: 'wallet'
-      });
-
-      // Get account transactions
-      const response = await client.request({
-        command: 'account_tx',
-        account: address,
-        limit: options.limit || 20
-      });
-
-      // Process transactions
-      for (const tx of response.result.transactions) {
-        const transaction = tx.tx;
-        const meta = tx.meta;
-        const hash = transaction.hash;
-
-        // Format amount if present
-        let amount = '';
-        if (transaction.Amount) {
-          amount = typeof transaction.Amount === 'string' 
-            ? dropsToXrp(transaction.Amount)
-            : JSON.stringify(transaction.Amount);
-        }
-
-        // Add transaction node with detailed info
-        this.builder.addNode({
-          id: hash,
-          label: `TX: ${transaction.TransactionType}\n` +
-                 `Amount: ${amount} XRP\n` +
-                 `Fee: ${dropsToXrp(transaction.Fee)} XRP\n` +
-                 `Sequence: ${transaction.Sequence}`,
-          type: 'transaction',
-          data: transaction
+      if (options.type === 'transaction') {
+        // Build graph for transaction hash
+        const tx = await client.request({
+          command: 'tx',
+          transaction: searchTerm
         });
 
-        // Add source account node and link
-        this.builder.addNode({
-          id: transaction.Account,
-          label: `Account: ${transaction.Account}`,
-          type: 'wallet'
-        });
-
-        // Try to get balance for source account
-        try {
-          const accountInfo = await client.request({
-            command: 'account_info',
-            account: transaction.Account,
-            ledger_index: 'validated'
-          });
-          const balance = dropsToXrp(accountInfo.result.account_data.Balance);
-          this.builder.setAccountBalance(transaction.Account, balance);
-        } catch (error) {
-          console.warn('Could not fetch balance for', transaction.Account);
-        }
-
-        this.builder.addLink({
-          source: transaction.Account,
-          target: hash,
-          type: 'sends',
-          data: {
-            amount: transaction.Amount,
-            timestamp: tx.date
-          }
-        });
-
-        // Add destination account node and link if present
-        if (transaction.Destination) {
-          this.builder.addNode({
-            id: transaction.Destination,
-            label: `Account: ${transaction.Destination}`,
-            type: 'wallet'
-          });
-
-          // Try to get balance for destination account
-          try {
-            const accountInfo = await client.request({
-              command: 'account_info',
-              account: transaction.Destination,
-              ledger_index: 'validated'
-            });
-            const balance = dropsToXrp(accountInfo.result.account_data.Balance);
-            this.builder.setAccountBalance(transaction.Destination, balance);
-          } catch (error) {
-            console.warn('Could not fetch balance for', transaction.Destination);
-          }
-
-          this.builder.addLink({
-            source: hash,
-            target: transaction.Destination,
-            type: 'receives',
-            data: {
-              amount: transaction.Amount,
-              timestamp: tx.date
-            }
-          });
-        }
-
-        // Add ledger node and link
-        const ledgerIndex = tx.ledger_index;
-        const ledgerId = `ledger-${ledgerIndex}`;
+        const transaction = tx.result;
+        this.builder.addTransactionNode(transaction);
         
-        this.builder.addNode({
-          id: ledgerId,
-          label: `Ledger #${ledgerIndex}`,
-          type: 'ledger'
+        // Add source and destination accounts
+        await this.builder.addAccountNode(transaction.Account);
+        if (transaction.Destination) {
+          await this.builder.addAccountNode(transaction.Destination);
+        }
+
+        // Add ledger info
+        await this.builder.addLedgerNode(transaction.ledger_index);
+
+      } else if (options.type === 'ledger') {
+        // Build graph for ledger sequence
+        const ledger = await client.request({
+          command: 'ledger',
+          ledger_index: parseInt(searchTerm),
+          transactions: true
         });
 
-        this.builder.addLink({
-          source: hash,
-          target: ledgerId,
-          type: 'in_ledger'
-        });
+        this.builder.addLedgerNode(ledger.result.ledger_index);
+
+        // Add transactions in ledger
+        for (const txHash of ledger.result.ledger.transactions) {
+          const tx = await client.request({
+            command: 'tx',
+            transaction: txHash
+          });
+          this.builder.addTransactionNode(tx.result);
+        }
+
+      } else {
+        // Default: build graph for account
+        return this.buildAccountGraph(searchTerm, options);
       }
 
       return this.builder.build();
-    } catch (error) {
-      console.error('Failed to build transaction graph:', error);
-      throw error;
+
+    } catch (error: any) {
+      console.error('Failed to build graph:', error);
+      throw new Error(error.message || 'Failed to build transaction graph');
     }
+  }
+
+  private async buildAccountGraph(address: string, options: TransactionGraphOptions): Promise<GraphData> {
+    const client = xrplService.getClient();
+    if (!client) {
+      throw new Error('Not connected to network');
+    }
+
+    // Get account transactions
+    const response = await client.request({
+      command: 'account_tx',
+      account: address,
+      limit: options.limit || 20
+    });
+
+    // Add account node
+    await this.builder.addAccountNode(address);
+
+    // Process transactions
+    for (const tx of response.result.transactions) {
+      this.builder.addTransactionNode(tx.tx);
+      
+      // Add other accounts involved
+      if (tx.tx.Destination) {
+        await this.builder.addAccountNode(tx.tx.Destination);
+      }
+      
+      // Add ledger info
+      await this.builder.addLedgerNode(tx.tx.ledger_index);
+    }
+
+    return this.builder.build();
   }
 }
 

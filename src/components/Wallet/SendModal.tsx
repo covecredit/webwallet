@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Send, AlertTriangle, CheckCircle } from 'lucide-react';
 import Widget from '../Widget/Widget';
 import { useWalletStore } from '../../store/walletStore';
+import { useNetworkStore } from '../../store/networkStore';
 import { xrplService } from '../../services/xrpl';
 import SendConfirmationDialog from './SendConfirmationDialog';
+import { getExplorerUrl } from '../../utils/network';
 
 interface SendModalProps {
   onClose: () => void;
@@ -11,6 +13,7 @@ interface SendModalProps {
 
 const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
   const { balance, isConnected } = useWalletStore();
+  const { selectedNetwork } = useNetworkStore();
   const [address, setAddress] = useState('');
   const [destinationTag, setDestinationTag] = useState('');
   const [amount, setAmount] = useState('');
@@ -85,10 +88,10 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
       }
 
       const hash = await xrplService.sendXRP({
-        amount: amountNumber.toFixed(6), // Ensure the amount is formatted correctly
+        amount: amountNumber.toFixed(6),
         destination: address,
         destinationTag: destinationTagNumber,
-        fee: feeNumber.toFixed(6), // Ensure the fee is formatted correctly
+        fee: feeNumber.toFixed(6),
       });
 
       console.log('Transaction successful:', hash);
@@ -150,11 +153,12 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
             <CheckCircle className="inline-block w-5 h-5 mr-2" />
             Transaction successful:{' '}
             <a
-              href={`https://xrpl.org/tx/${transactionHash}`}
+              href={getExplorerUrl(transactionHash, selectedNetwork.type)}
               target="_blank"
               rel="noopener noreferrer"
+              className="text-primary hover:underline"
             >
-              {transactionHash}
+              View on Explorer
             </a>
             <div>Timestamp: {transactionTimestamp}</div>
           </div>

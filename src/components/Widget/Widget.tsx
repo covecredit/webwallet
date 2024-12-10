@@ -30,14 +30,27 @@ const Widget: React.FC<WidgetProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   const dragRef = useRef({ startX: 0, startY: 0, offsetX: 0, offsetY: 0 });
   const resizeRef = useRef({ startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
-  const isMobileView = useMediaQuery('(max-width: 768px)');
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
+  useEffect(() => {
+    // Set widget to full width on mobile
+    if (isMobile && widget) {
+      updateWidget({
+        ...widget,
+        x: 0,
+        y: widget.y,
+        width: window.innerWidth,
+        height: Math.min(window.innerHeight * 0.8, widget.height || defaultSize?.height || LAYOUT.MIN_WIDGET_HEIGHT)
+      });
+    }
+  }, [isMobile]);
 
   const handleClick = () => {
     bringToFront(id);
   };
 
   const handleDragStart = (e: React.MouseEvent) => {
-    if (isMaximized || isMobileView) return;
+    if (isMaximized || isMobile) return;
     
     setIsDragging(true);
     dragRef.current = {
@@ -68,7 +81,7 @@ const Widget: React.FC<WidgetProps> = ({
   };
 
   const handleResizeStart = (e: React.MouseEvent) => {
-    if (isMaximized || isMobileView) return;
+    if (isMaximized || isMobile) return;
     
     e.stopPropagation();
     setIsResizing(true);
@@ -100,7 +113,7 @@ const Widget: React.FC<WidgetProps> = ({
   };
 
   const handleMaximize = () => {
-    if (!widget) return;
+    if (!widget || isMobile) return;
 
     const newState = !isMaximized;
     setIsMaximized(newState);
@@ -157,14 +170,14 @@ const Widget: React.FC<WidgetProps> = ({
   return (
     <div
       style={{
-        position: isMobileView ? 'relative' : 'absolute',
-        left: isMobileView ? 0 : widget.x,
-        top: isMobileView ? 0 : widget.y,
-        width: isMobileView ? '100%' : (widget.width || defaultSize?.width || LAYOUT.MIN_WIDGET_WIDTH),
+        position: isMobile ? 'relative' : 'absolute',
+        left: isMobile ? 0 : widget.x,
+        top: isMobile ? 0 : widget.y,
+        width: isMobile ? '100%' : (widget.width || defaultSize?.width || LAYOUT.MIN_WIDGET_WIDTH),
         height: widget.height || defaultSize?.height || LAYOUT.MIN_WIDGET_HEIGHT,
         zIndex: widget.zIndex || 1,
         maxHeight: `calc(100vh - ${LAYOUT.HEADER_HEIGHT + LAYOUT.FOOTER_HEIGHT + 40}px)`,
-        marginBottom: LAYOUT.FOOTER_HEIGHT + 20
+        marginBottom: isMobile ? LAYOUT.FOOTER_HEIGHT + 20 : 0
       }}
       className="widget"
       onClick={handleClick}
@@ -184,12 +197,14 @@ const Widget: React.FC<WidgetProps> = ({
           >
             <Minus className="w-4 h-4 text-text" />
           </button>
-          <button
-            onClick={handleMaximize}
-            className="p-1 hover:bg-primary-opacity rounded transition-colors"
-          >
-            <Square className="w-4 h-4 text-text" />
-          </button>
+          {!isMobile && (
+            <button
+              onClick={handleMaximize}
+              className="p-1 hover:bg-primary-opacity rounded transition-colors"
+            >
+              <Square className="w-4 h-4 text-text" />
+            </button>
+          )}
           <button
             onClick={handleClose}
             className="p-1 hover:bg-primary-opacity rounded transition-colors"
@@ -201,7 +216,7 @@ const Widget: React.FC<WidgetProps> = ({
       <div className="overflow-auto" style={{ height: 'calc(100% - 48px)' }}>
         {children}
       </div>
-      {!isMobileView && !isMaximized && (
+      {!isMobile && !isMaximized && (
         <div
           className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
           onMouseDown={handleResizeStart}

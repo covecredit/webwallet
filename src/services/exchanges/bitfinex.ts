@@ -8,13 +8,16 @@ class BitfinexService extends EventEmitter {
   private lastTicker: Partial<PriceData> | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private pingInterval: NodeJS.Timeout | null = null;
+  private dataTimeout: NodeJS.Timeout | null = null;
   private readonly RECONNECT_DELAY = 5000;
   private readonly PING_INTERVAL = 30000;
+  private readonly DATA_TIMEOUT = 10000;
   private readonly MAX_RETRIES = 3;
   private retryCount = 0;
   private channelIds: { [key: string]: number } = {};
   private lastUpdate = 0;
   private readonly MIN_UPDATE_INTERVAL = 1000; // 1 second minimum between updates
+  private isSubscribed = false;
 
   private constructor() {
     super();
@@ -38,6 +41,7 @@ class BitfinexService extends EventEmitter {
         console.log('Connected to Bitfinex');
         this.retryCount = 0;
         this.setupPingInterval();
+        this.setupDataTimeout();
         this.subscribe();
       };
 
@@ -65,17 +69,23 @@ class BitfinexService extends EventEmitter {
       
       if (data.event === 'subscribed') {
         this.channelIds[data.channel] = data.chanId;
+        this.isSubscribed = true;
+        console.log('Subscribed to Bitfinex channel:', data.channel);
         return;
       }
 
       if (data.event === 'error') {
+        console.error('Bitfinex subscription error:', data);
         this.emit('error', new Error(data.msg));
         return;
       }
 
       if (Array.isArray(data)) {
         const [chanId, payload] = data;
-        if (payload === 'hb') return;
+        if (payload === 'hb') {
+          this.resetDataTimeout();
+          return;
+        }
 
         const now = Date.now();
         if (now - this.lastUpdate < this.MIN_UPDATE_INTERVAL) return;
@@ -88,6 +98,8 @@ class BitfinexService extends EventEmitter {
         if (this.channelIds['ticker'] === chanId) {
           this.handleTickerData(payload);
         }
+
+        this.resetDataTimeout();
       }
     } catch (error) {
       console.error('Error processing Bitfinex data:', error);
@@ -96,6 +108,8 @@ class BitfinexService extends EventEmitter {
   }
 
   private handleCandleData(payload: any): void {
+    if (!this.isSubscribed) return;
+
     if (Array.isArray(payload) && Array.isArray(payload[0])) {
       const candles = payload.map(this.parseCandle);
       if (candles.length > 0) {
@@ -113,6 +127,8 @@ class BitfinexService extends EventEmitter {
   }
 
   private handleTickerData(payload: any): void {
+    if (!this.isSubscribed) return;
+
     if (Array.isArray(payload)) {
       const [
         bid, bidSize, ask, askSize, dailyChange, dailyChangePercent,
@@ -159,6 +175,20 @@ class BitfinexService extends EventEmitter {
     }, this.PING_INTERVAL);
   }
 
+  private setupDataTimeout(): void {
+    this.resetDataTimeout();
+  }
+
+  private resetDataTimeout(): void {
+    if (this.dataTimeout) {
+      clearTimeout(this.dataTimeout);
+    }
+    this.dataTimeout = setTimeout(() => {
+      console.log('Bitfinex data timeout, reconnecting...');
+      this.reconnect();
+    }, this.DATA_TIMEOUT);
+  }
+
   private clearPingInterval(): void {
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
@@ -186,8 +216,13 @@ class BitfinexService extends EventEmitter {
 
   private cleanup(): void {
     this.clearPingInterval();
+    if (this.dataTimeout) {
+      clearTimeout(this.dataTimeout);
+      this.dataTimeout = null;
+    }
     this.channelIds = {};
     this.lastTicker = null;
+    this.isSubscribed = false;
     if (this.ws) {
       this.ws.onclose = null;
       this.ws.onerror = null;
@@ -195,6 +230,11 @@ class BitfinexService extends EventEmitter {
       this.ws.onopen = null;
       this.ws = null;
     }
+  }
+
+  private reconnect(): void {
+    this.cleanup();
+    this.connect();
   }
 
   private scheduleReconnect(): void {
@@ -208,7 +248,7 @@ class BitfinexService extends EventEmitter {
     }
 
     const delay = this.RECONNECT_DELAY * Math.pow(2, this.retryCount - 1);
-    console.log(`Scheduling reconnect attempt ${this.retryCount} in ${delay}ms`);
+    console.log(`Scheduling Bitfinex reconnect in ${delay}ms`);
 
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
