@@ -1,50 +1,77 @@
-# React + TypeScript + Vite
+# XRPL Wallet Interface
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, interactive wallet interface for the XRP Ledger (XRPL) built with React and TypeScript.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Real-time XRP/USD price tracking
+- Interactive transaction graph visualization
+- Secure wallet management
+- Transaction history
+- NFT marketplace integration
+- Animated UI elements with smooth transitions
+- Responsive design for all screen sizes
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- Framer Motion
+- Recharts
+- React Force Graph
+- XRPL.js
+- Zustand
+- Lucide Icons
 
-- Configure the top-level `parserOptions` property like this:
+## Getting Started
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/xrpl-wallet.git
+cd xrpl-wallet
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
-
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+2. Install dependencies:
+```bash
+npm install
 ```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+4. Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+## Project Structure
+
+```
+src/
+├── components/     # React components
+│   ├── AppBar/    # Application navigation
+│   ├── Graph/     # Transaction graph visualization
+│   ├── Header/    # App header with wallet connection
+│   ├── Layout/    # Layout components
+│   ├── Market/    # NFT marketplace
+│   ├── Price/     # Price chart components
+│   ├── Wallet/    # Wallet management
+│   └── Widget/    # Draggable widget system
+├── store/         # Zustand state management
+├── types/         # TypeScript type definitions
+├── utils/         # Utility functions
+└── hooks/         # Custom React hooks
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

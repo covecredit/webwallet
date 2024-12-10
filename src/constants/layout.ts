@@ -1,0 +1,18 @@
+export const LAYOUT = {
+  HEADER_HEIGHT: 80,
+  FOOTER_HEIGHT: 48,
+  MENU_HEIGHT: 48,
+  MOBILE_PADDING: 16,
+  MIN_WIDGET_WIDTH: 300,
+  MIN_WIDGET_HEIGHT: 200,
+  WIDGET_MARGIN: 20,
+  Z_INDEX: {
+    BACKGROUND: -1,
+    BASE: 0,
+    WIDGET: 10,
+    HEADER: 60,
+    MENU: 55,
+    MODAL: 70,
+    PORTAL: 100
+  }
+} as const;
