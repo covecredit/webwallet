@@ -1,4 +1,4 @@
-import { Client, Wallet, Payment, xrpToDrops } from 'xrpl';
+import { Client, Wallet } from 'xrpl';
 import { NetworkConfig } from '../../types/network';
 import { EventEmitter } from '../../utils/EventEmitter';
 import { ConnectionState } from './state';
@@ -78,7 +78,6 @@ export class XRPLService extends EventEmitter {
           clearTimeout(timeoutId);
           this.connectionState = ConnectionState.CONNECTED;
           this.retryCount = 0;
-          // Initialize TransactionService after successful connection
           if (this.client) {
             this.transactionService = new TransactionService(this.client);
           }

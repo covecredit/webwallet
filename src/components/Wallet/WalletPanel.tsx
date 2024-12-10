@@ -100,6 +100,10 @@ const WalletPanel: React.FC = () => {
     });
   };
 
+  const handleCloseWidget = (id: string) => {
+    updateWidget({ id, isVisible: false });
+  };
+
   return (
     <>
       <Widget
@@ -165,19 +169,19 @@ const WalletPanel: React.FC = () => {
       </Widget>
 
       {isConnected && showReceiveModal && (
-        <ReceiveModal onClose={() => updateWidget({ id: 'receive', isVisible: false })} />
+        <ReceiveModal onClose={() => handleCloseWidget('receive')} />
       )}
 
       {isConnected && showSendModal && (
-        <SendModal onClose={() => updateWidget({ id: 'send', isVisible: false })} />
+        <SendModal onClose={() => handleCloseWidget('send')} />
       )}
 
       {isConnected && showHistory && (
-        <TransactionHistory onClose={() => updateWidget({ id: 'history', isVisible: false })} />
+        <TransactionHistory onClose={() => handleCloseWidget('history')} />
       )}
 
       {isConnected && showNFTViewer && (
-        <NFTViewer onClose={() => updateWidget({ id: 'nft', isVisible: false })} />
+        <NFTViewer onClose={() => handleCloseWidget('nft')} />
       )}
     </>
   );

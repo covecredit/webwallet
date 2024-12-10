@@ -33,26 +33,17 @@ export class TransactionService {
       // Convert amount to drops
       const drops = xrpToDrops(params.amount);
 
-      // Verify wallet has sufficient balance
-      try {
-        const accountInfo = await this.client.request({
-          command: 'account_info',
-          account: params.wallet.address,
-          ledger_index: 'validated'
-        });
+      // Get current ledger sequence
+      const currentLedger = await this.client.getLedgerIndex();
 
-        const balance = Number(accountInfo.result.account_data.Balance);
-        const requiredAmount = Number(drops) + 12; // Add minimum transaction fee
+      // Get next sequence number
+      const accountInfo = await this.client.request({
+        command: 'account_info',
+        account: params.wallet.address,
+        ledger_index: 'validated'
+      });
 
-        if (balance < requiredAmount) {
-          throw new Error('Insufficient balance to complete the transaction');
-        }
-      } catch (error: any) {
-        if (error.data?.error === 'actNotFound') {
-          throw new Error('Source account not found or not activated');
-        }
-        throw error;
-      }
+      const sequence = accountInfo.result.account_data.Sequence;
 
       // Prepare transaction
       const payment: Payment = {
@@ -60,28 +51,14 @@ export class TransactionService {
         Account: params.wallet.address,
         Amount: drops,
         Destination: params.destination,
+        Sequence: sequence,
+        LastLedgerSequence: currentLedger + 75, // Give more time for validation
       };
 
       // Add destination tag if provided
       if (params.destinationTag) {
         payment.DestinationTag = parseInt(params.destinationTag, 10);
       }
-
-      // Verify destination account exists
-      try {
-        await this.client.request({
-          command: 'account_info',
-          account: params.destination,
-          ledger_index: 'validated'
-        });
-      } catch (error: any) {
-        if (error.data?.error === 'actNotFound') {
-          throw new Error('Destination account not found or not activated');
-        }
-        throw error;
-      }
-
-      console.log('Prepared payment:', payment);
 
       // Auto-fill transaction fields
       const prepared = await this.client.autofill(payment);
@@ -121,7 +98,6 @@ export class TransactionService {
       } else if (error.message.includes('temBAD_SEQUENCE')) {
         throw new Error('Invalid transaction sequence');
       } else {
-        // If we have a specific error message, use it, otherwise use generic message
         throw new Error(error.message || 'Failed to send XRP. Please try again.');
       }
     }

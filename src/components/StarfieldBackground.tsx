@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 const StarfieldBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -12,9 +12,8 @@ const StarfieldBackground: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Reduce star count on mobile
-    const STAR_COUNT = isMobile ? 200 : 400;
-    const stars: { x: number; y: number; z: number }[] = [];
+    const STAR_COUNT = isMobile ? 100 : 200;
+    const stars: { x: number; y: number; z: number; size: number }[] = [];
     let animationFrameId: number;
 
     const initStars = () => {
@@ -23,13 +22,14 @@ const StarfieldBackground: React.FC = () => {
         stars.push({
           x: Math.random() * canvas.width - canvas.width / 2,
           y: Math.random() * canvas.height - canvas.height / 2,
-          z: Math.random() * canvas.width
+          z: Math.random() * canvas.width,
+          size: Math.random() * 2
         });
       }
     };
 
     const moveStars = () => {
-      const speed = isMobile ? 0.5 : 1; // Slower movement on mobile
+      const speed = isMobile ? 0.5 : 1;
       stars.forEach(star => {
         star.z -= speed;
         if (star.z <= 0) {
@@ -47,15 +47,15 @@ const StarfieldBackground: React.FC = () => {
       stars.forEach(star => {
         const x = (star.x / star.z) * canvas.width + canvas.width / 2;
         const y = (star.y / star.z) * canvas.height + canvas.height / 2;
-        
-        // Smaller stars on mobile
-        const size = isMobile ? 
-          (1 - star.z / canvas.width) * 2 :
-          (1 - star.z / canvas.width) * 3;
+        const size = (star.size * (1 - star.z / canvas.width)) * 3;
 
-        // Only draw stars within viewport
         if (x >= 0 && x <= canvas.width && y >= 0 && y <= canvas.height) {
-          ctx.fillStyle = '#FFD700';
+          const opacity = 1 - star.z / canvas.width;
+          const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+          gradient.addColorStop(0, `rgba(255, 215, 0, ${opacity})`);
+          gradient.addColorStop(1, 'transparent');
+
+          ctx.fillStyle = gradient;
           ctx.beginPath();
           ctx.arc(x, y, size, 0, Math.PI * 2);
           ctx.fill();
