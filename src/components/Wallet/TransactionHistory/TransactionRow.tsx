@@ -31,9 +31,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
       `}
     >
       <td className="px-4 py-3 text-primary">{tx.type}</td>
-      <td className="px-4 py-3 text-text whitespace-nowrap">
-        {formatRippleTime(tx.date)}
-      </td>
+      <td className="px-4 py-3 text-text whitespace-nowrap">{formatRippleTime(tx.date)}</td>
       <td className="px-4 py-3">
         <div className="flex items-center space-x-1 max-w-[200px] overflow-hidden">
           <span className="font-mono text-sm truncate">{tx.sender}</span>
@@ -72,15 +70,19 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
           </div>
         )}
       </td>
-      <td className="px-4 py-3 text-text">
-        {tx.amount ? `${tx.amount} XRP` : '-'}
-      </td>
+      <td className="px-4 py-3 text-text">{tx.amount ? `${tx.amount} XRP` : '-'}</td>
       <td className="px-4 py-3 text-text">{tx.fee} XRP</td>
       <td className="px-4 py-3">
-        <span className={`
+        <span
+          className={`
           px-2 py-1 rounded-full text-xs
-          ${tx.result === 'tesSUCCESS' ? 'bg-green-500 bg-opacity-20 text-green-400' : 'bg-red-500 bg-opacity-20 text-red-400'}
-        `}>
+          ${
+            tx.result === 'tesSUCCESS'
+              ? 'bg-green-500 bg-opacity-20 text-green-400'
+              : 'bg-red-500 bg-opacity-20 text-red-400'
+          }
+        `}
+        >
           {tx.result}
         </span>
       </td>
@@ -108,7 +110,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="text-primary hover:text-opacity-80"
+          className="text-primary hover:text-primary/80"
         >
           <ExternalLink className="w-4 h-4" />
         </a>
@@ -123,9 +125,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
               <div key={index} className="bg-background bg-opacity-30 p-2 rounded text-sm">
                 {memo.data && <div className="break-all">{memo.data}</div>}
                 {memo.type && (
-                  <div className="text-xs text-text text-opacity-50 mt-1">
-                    Type: {memo.type}
-                  </div>
+                  <div className="text-xs text-text text-opacity-50 mt-1">Type: {memo.type}</div>
                 )}
               </div>
             ))}

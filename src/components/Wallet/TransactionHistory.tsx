@@ -63,20 +63,20 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
 
   const exportToCSV = () => {
     const headers = ['Type', 'Timestamp', 'Amount', 'Fee', 'From', 'To', 'Status', 'Hash'];
-    const csvData = transactions.map(tx => [
+    const csvData = transactions.map((tx) => [
       tx.type,
-      formatRippleTime(tx.date, 'yyyy-MM-dd HH:mm:ss'),
+      formatRippleTime(tx.date),
       tx.amount ? `${tx.amount} XRP` : '-',
       `${tx.fee} XRP`,
       tx.sender,
       tx.receiver || '-',
       tx.result,
-      tx.hash
+      tx.hash,
     ]);
 
     const csvContent = [
       headers.join(','),
-      ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...csvData.map((row) => row.map((cell) => `"${cell}"`).join(',')),
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -100,17 +100,23 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
         const response = await client.request({
           command: 'account_tx',
           account: address,
-          limit: 100
+          limit: 100,
         });
 
         const txs = response.result.transactions.map((tx: any) => {
           const transaction = tx.tx;
           const meta = tx.meta;
-          
+
           const memos = transaction.Memos?.map((memo: any) => ({
-            type: memo.Memo.MemoType ? Buffer.from(memo.Memo.MemoType, 'hex').toString('utf8') : undefined,
-            data: memo.Memo.MemoData ? Buffer.from(memo.Memo.MemoData, 'hex').toString('utf8') : undefined,
-            format: memo.Memo.MemoFormat ? Buffer.from(memo.Memo.MemoFormat, 'hex').toString('utf8') : undefined
+            type: memo.Memo.MemoType
+              ? Buffer.from(memo.Memo.MemoType, 'hex').toString('utf8')
+              : undefined,
+            data: memo.Memo.MemoData
+              ? Buffer.from(memo.Memo.MemoData, 'hex').toString('utf8')
+              : undefined,
+            format: memo.Memo.MemoFormat
+              ? Buffer.from(memo.Memo.MemoFormat, 'hex').toString('utf8')
+              : undefined,
           }));
 
           return {
@@ -123,7 +129,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
             receiver: transaction.Destination,
             result: meta.TransactionResult,
             sequence: transaction.Sequence,
-            memos
+            memos,
           };
         });
 
@@ -165,7 +171,10 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
       id="history"
       title="Transaction History"
       icon={History}
-      defaultPosition={{ x: window.innerWidth - 340, y: LAYOUT.HEADER_HEIGHT + LAYOUT.WIDGET_MARGIN }}
+      defaultPosition={{
+        x: window.innerWidth - 340,
+        y: LAYOUT.HEADER_HEIGHT + LAYOUT.WIDGET_MARGIN,
+      }}
       defaultSize={{ width: 800, height: 600 }}
       onClose={onClose}
     >
@@ -205,14 +214,12 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
               <p className="text-sm text-red-500">{error}</p>
             </div>
           ) : transactions.length === 0 ? (
-            <div className="text-center text-text/50 p-4">
-              No transactions found
-            </div>
+            <div className="text-center text-text text-opacity-50 p-4">No transactions found</div>
           ) : (
             <div className="overflow-x-auto overflow-y-auto max-h-[calc(100%-2rem)]">
               <table className="w-full">
                 <thead className="sticky top-0 bg-background z-10">
-                  <tr className="text-left border-b border-primary/30">
+                  <tr className="text-left border-b border-primary border-opacity-30">
                     <th className="px-4 py-2 text-primary">Type</th>
                     <th className="px-4 py-2 text-primary">Timestamp</th>
                     <th className="px-4 py-2 text-primary">From</th>
@@ -239,8 +246,8 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
                           {formatRippleTime(tx.date)}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center space-x-1">
-                            <span className="font-mono text-sm">{tx.sender}</span>
+                          <div className="flex items-center space-x-1 max-w-[200px] overflow-hidden">
+                            <span className="font-mono text-sm truncate">{tx.sender}</span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -258,14 +265,14 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
                         </td>
                         <td className="px-4 py-3">
                           {tx.receiver && (
-                            <div className="flex items-center space-x-1">
-                              <span className="font-mono text-sm">{tx.receiver}</span>
+                            <div className="flex items-center space-x-1 max-w-[200px] overflow-hidden">
+                              <span className="font-mono text-sm truncate">{tx.receiver}</span>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleCopy(tx.receiver!, 'receiver');
                                 }}
-                                className="p-1 hover:bg-primary/20 rounded transition-colors"
+                                className="flex-shrink-0 p-1 hover:bg-primary hover:bg-opacity-20 rounded transition-colors"
                               >
                                 {copiedItem === `receiver-${tx.receiver}` ? (
                                   <Check className="w-3 h-3 text-green-400" />
@@ -281,16 +288,22 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ onClose }) => {
                         </td>
                         <td className="px-4 py-3 text-text">{tx.fee} XRP</td>
                         <td className="px-4 py-3">
-                          <span className={`
+                          <span
+                            className={`
                             px-2 py-1 rounded-full text-xs
-                            ${tx.result === 'tesSUCCESS' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}
-                          `}>
+                            ${
+                              tx.result === 'tesSUCCESS'
+                                ? 'bg-green-500/20 text-green-400'
+                                : 'bg-red-500/20 text-red-400'
+                            }
+                          `}
+                          >
                             {tx.result}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center space-x-1">
-                            <span className="font-mono text-sm">{tx.hash}</span>
+                          <div className="flex items-center space-x-1 max-w-[200px] overflow-hidden">
+                            <span className="font-mono text-sm truncate">{tx.hash}</span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
