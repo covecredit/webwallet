@@ -175,6 +175,10 @@ class XRPLService {
       );
     }
 
+    if (params.destination === this.wallet.address) {
+      throw new Error('Cannot send XRP to the same address.');
+    }
+
     const amountInDrops = xrpToDrops(params.amount);
     const feeInDrops = xrpToDrops(params.fee);
 
@@ -194,7 +198,7 @@ class XRPLService {
         Destination: params.destination,
         Amount: amountInDrops,
         Sequence: nextSequence,
-        LastLedgerSequence: currentLedger + 10,
+        LastLedgerSequence: currentLedger + 20, // Set LastLedgerSequence to 20 ledgers ahead
         Fee: feeInDrops,
       };
 

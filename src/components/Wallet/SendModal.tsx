@@ -26,6 +26,11 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
       return false;
     }
 
+    if (address === xrplService.getWallet()?.address) {
+      setError('Cannot send XRP to the same address.');
+      return false;
+    }
+
     const amountNumber = parseFloat(amount);
     if (isNaN(amountNumber) || amountNumber <= 0) {
       setError('Please enter a valid amount greater than 0');
@@ -156,6 +161,7 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
             className="w-full px-4 py-2 bg-background/50 border border-primary/30 rounded-lg 
                      text-text placeholder-text/50 focus:outline-none focus:border-primary"
             placeholder="Enter destination address"
+            disabled={isSending}
           />
         </div>
 
@@ -170,6 +176,7 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
             className="w-full px-4 py-2 bg-background/50 border border-primary/30 rounded-lg 
                      text-text placeholder-text/50 focus:outline-none focus:border-primary"
             placeholder="Enter destination tag"
+            disabled={isSending}
           />
         </div>
 
@@ -182,6 +189,7 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
             className="w-full px-4 py-2 bg-background/50 border border-primary/30 rounded-lg 
                      text-text placeholder-text/50 focus:outline-none focus:border-primary"
             placeholder="Enter amount"
+            disabled={isSending}
           />
           <div className="text-xs text-text/50">Available balance: {balance.toFixed(6)} XRP</div>
         </div>
@@ -194,6 +202,7 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
             onChange={handleFeeChange}
             className="w-full px-4 py-2 bg-background/50 border border-primary/30 rounded-lg 
                      text-text placeholder-text/50 focus:outline-none focus:border-primary"
+            disabled={isSending}
           />
           <div className="text-xs text-text/50">Minimum fee: 0.000012 XRP</div>
         </div>
