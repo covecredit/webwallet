@@ -76,15 +76,10 @@ const WorldTime: React.FC = () => {
   const regions = Array.from(new Set(availableTimeZones.map(tz => tz.region))).sort();
 
   return (
-    <div className="space-y-6 p-4">
-      <div className="flex items-center justify-between border-b border-primary/30 pb-2">
-        <div className="flex items-center space-x-2 text-primary">
-          <Clock className="w-5 h-5" />
-          <h3 className="font-medium">World Time</h3>
-        </div>
-        <div className="text-sm text-text/70">
-          {selectedZones.length} zones selected
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center space-x-2 text-primary border-b border-primary border-opacity-30 pb-2">
+        <Clock className="w-5 h-5" />
+        <h3 className="font-medium">World Time</h3>
       </div>
 
       <div className="space-y-4">

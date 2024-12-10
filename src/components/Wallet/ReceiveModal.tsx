@@ -120,7 +120,7 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ onClose }) => {
               level="H"
               includeMargin={true}
               imageSettings={{
-                src: "/vite.svg",
+                src: "/logo.svg",
                 x: undefined,
                 y: undefined,
                 height: 24,

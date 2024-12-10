@@ -13,7 +13,7 @@ const UtilitiesPanel: React.FC = () => {
       defaultPosition={{ x: window.innerWidth - 340, y: 80 }}
       defaultSize={{ width: 320, height: 500 }}
     >
-      <div className="space-y-6">
+      <div className="p-4 space-y-6">
         <NetworkInfo />
         <WorldTime />
       </div>
