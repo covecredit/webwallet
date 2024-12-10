@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, AlertTriangle } from 'lucide-react';
+import { Send, AlertTriangle, CheckCircle } from 'lucide-react';
 import Widget from '../Widget/Widget';
 import { useWalletStore } from '../../store/walletStore';
 import { xrplService } from '../../services/xrpl';
@@ -18,6 +18,7 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
   const validateInput = () => {
     if (!address) {
@@ -85,8 +86,11 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
       });
 
       console.log('Transaction successful:', hash);
+      setTransactionHash(hash);
       setShowConfirmation(false);
-      onClose();
+      setTimeout(() => {
+        onClose();
+      }, 2000); // Close the SendModal after 2 seconds
     } catch (error: any) {
       console.error('Transaction error:', error);
       setError(error.message || 'Failed to send XRP');
@@ -137,6 +141,12 @@ const SendModal: React.FC<SendModalProps> = ({ onClose }) => {
     >
       <div className="p-6 space-y-6">
         {error && <div className="text-red-500 text-sm">{error}</div>}
+        {transactionHash && (
+          <div className="text-green-500 text-sm">
+            <CheckCircle className="inline-block w-5 h-5 mr-2" />
+            Transaction successful: {transactionHash}
+          </div>
+        )}
         <div className="space-y-2">
           <label className="block text-sm font-medium text-text/70">Destination Address</label>
           <input
