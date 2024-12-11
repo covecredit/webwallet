@@ -1,25 +1,30 @@
-import { Transaction } from 'xrpl';
+import { Payment } from 'xrpl';
 
-export interface GraphNode {
-  id: string;
-  label: string;
-  type: 'wallet' | 'transaction' | 'ledger';
-  data?: any;
+export interface TransactionParams {
+  amount: string;
+  destination: string;
+  destinationTag?: string;
+  wallet: any;
+  fee?: string;
 }
 
-export interface GraphLink {
-  source: string;
-  target: string;
-  type?: string;
-  data?: any;
+export interface PaymentParams {
+  account: string;
+  destination: string;
+  amount: string;
+  sequence: number;
+  lastLedgerSequence: number;
+  destinationTag?: string;
+  fee?: string;
 }
 
-export interface GraphData {
-  nodes: GraphNode[];
-  links: GraphLink[];
+export interface ValidationResult {
+  isValid: boolean;
+  error?: string;
 }
 
-export interface TransactionGraphOptions {
-  limit?: number;
-  includeDetails?: boolean;
+export interface PreparedPayment extends Payment {
+  Sequence: number;
+  LastLedgerSequence: number;
+  Fee?: string;
 }
