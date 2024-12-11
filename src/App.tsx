@@ -11,6 +11,7 @@ import { useTheme } from './hooks/useTheme';
 import { exchangeManager } from './services/exchanges';
 import { xrplService } from './services/xrpl';
 import { useNetworkStore } from './store/networkStore';
+import { Anchor } from 'lucide-react';
 
 const App: React.FC = () => {
   const { widgets } = useWidgetStore();
@@ -57,12 +58,17 @@ const App: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
-          <div className="text-lg text-text">Loading CØVE Wallet...</div>
-          <div className="text-sm text-text/70">{loadingStatus}</div>
+        <div className="initial-loader">
+          <div className="logo">
+            <Anchor className="w-8 h-8 text-primary" />
+            <div className="logo-text">
+              C<span>O</span>VE
+            </div>
+          </div>
+          <div className="spinner" />
+          <div className="text-sm text-text/70 mt-4">{loadingStatus}</div>
           {error && (
-            <div className="text-red-500 text-sm max-w-md mx-auto">
+            <div className="text-red-500 text-sm max-w-md mx-auto mt-2">
               {error}
             </div>
           )}

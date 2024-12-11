@@ -13,7 +13,8 @@ export default defineConfig({
       process: 'process/browser',
       util: 'util',
       stream: 'stream-browserify',
-      events: 'events'
+      events: 'events',
+      crypto: 'crypto-browserify'
     }
   },
   define: {
@@ -39,7 +40,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['buffer', 'process', 'events'],
+    include: ['buffer', 'process', 'events', 'stream-browserify', 'util', 'crypto-browserify'],
     esbuildOptions: {
       target: 'esnext',
       define: {

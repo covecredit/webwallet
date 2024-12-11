@@ -21,6 +21,10 @@ export default {
       },
       textColor: {
         'primary-opacity': 'rgba(var(--primary-rgb), 0.7)',
+      },
+      borderWidth: {
+        '2': '2px',
+        '3': '3px',
       }
     },
   },

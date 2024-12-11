@@ -11,7 +11,7 @@ import { SearchHistory } from './SearchHistory';
 import GraphContextMenu from './GraphContextMenu';
 import { LAYOUT } from '../../constants/layout';
 import { GRAPH_COLORS, NODE_SIZES } from '../../constants/colors';
-import { addToSearchHistory, clearSearchHistory, getSearchHistory } from '../../utils/searchHistory';
+import { addToSearchHistory, clearSearchHistory } from '../../utils/searchHistory';
 
 const GraphPanel: React.FC = () => {
   const { isConnected } = useWalletStore();
@@ -19,7 +19,6 @@ const GraphPanel: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hoveredNode, setHoveredNode] = useState<any>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [contextMenu, setContextMenu] = useState<{
@@ -30,6 +29,21 @@ const GraphPanel: React.FC = () => {
   const [copiedAddress, setCopiedAddress] = useState(false);
   const fgRef = useRef<any>();
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const getNodeSize = (node: any) => {
+    switch (node.type) {
+      case 'wallet':
+        return NODE_SIZES.WALLET;
+      case 'transaction':
+        return NODE_SIZES.TRANSACTION;
+      case 'ledger':
+        return NODE_SIZES.LEDGER;
+      case 'payment':
+        return NODE_SIZES.PAYMENT;
+      default:
+        return NODE_SIZES.TRANSACTION;
+    }
+  };
 
   const fetchGraphData = useCallback(async (searchTerm: string) => {
     try {
@@ -192,20 +206,7 @@ const GraphPanel: React.FC = () => {
                         return GRAPH_COLORS.TRANSACTION;
                     }
                   }}
-                  nodeRelSize={(node: any) => {
-                    switch (node.type) {
-                      case 'wallet':
-                        return NODE_SIZES.WALLET;
-                      case 'transaction':
-                        return NODE_SIZES.TRANSACTION;
-                      case 'ledger':
-                        return NODE_SIZES.LEDGER;
-                      case 'payment':
-                        return NODE_SIZES.PAYMENT;
-                      default:
-                        return NODE_SIZES.TRANSACTION;
-                    }
-                  }}
+                  nodeVal={getNodeSize}
                   linkColor={() => GRAPH_COLORS.LINK}
                   linkWidth={1.5}
                   linkDirectionalParticles={2}

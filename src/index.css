@@ -62,6 +62,31 @@
   .chart-tooltip {
     @apply bg-background bg-opacity-95 border border-opacity-30 border-primary rounded-lg p-2 text-sm;
   }
+
+  .initial-loader {
+    @apply flex flex-col items-center gap-4;
+  }
+
+  .initial-loader .logo {
+    @apply flex items-center gap-2 mb-4;
+  }
+
+  .initial-loader .logo-text {
+    @apply text-2xl font-bold text-text;
+  }
+
+  .initial-loader .logo-text span {
+    @apply relative;
+  }
+
+  .initial-loader .logo-text span::after {
+    content: '';
+    @apply absolute top-1/2 left-0 w-full h-0.5 bg-primary -rotate-45 transform -translate-y-1/2;
+  }
+
+  .initial-loader .spinner {
+    @apply w-10 h-10 border-2 border-transparent border-t-primary rounded-full animate-spin;
+  }
 }
 
 /* Custom scrollbar */

@@ -78,38 +78,46 @@ const WalletPanel: React.FC = () => {
       >
         <div className="p-6 space-y-6">
           <div className="space-y-4">
-            <div className="text-sm text-text/70">Balance</div>
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold text-primary">{balance.toFixed(6)} XRP</div>
-              {canUseFaucet && (
-                <button
-                  onClick={handleFaucetFund}
-                  disabled={isFunding}
-                  className={`
-                    flex items-center space-x-1 px-2 py-1 rounded text-sm transition-colors
-                    ${isFunding 
-                      ? 'bg-primary/10 text-primary/50 cursor-not-allowed'
-                      : 'bg-primary/20 hover:bg-primary/30 text-primary cursor-pointer'
-                    }
-                  `}
-                >
-                  <span>{isFunding ? 'Funding...' : 'Faucet'}</span>
-                </button>
-              )}
-            </div>
-            <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-primary/30">
-              <div className="text-sm font-mono text-text/70 truncate">{address}</div>
-              <button
-                onClick={handleCopyAddress}
-                className="p-1 hover:bg-primary/20 rounded transition-colors ml-2"
-              >
-                {copiedAddress ? (
-                  <Check className="w-4 h-4 text-green-400" />
-                ) : (
-                  <Copy className="w-4 h-4 text-primary" />
-                )}
-              </button>
-            </div>
+            {isConnected ? (
+              <>
+                <div className="text-sm text-text/70">Balance</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-2xl font-bold text-primary">{balance.toFixed(6)} XRP</div>
+                  {canUseFaucet && (
+                    <button
+                      onClick={handleFaucetFund}
+                      disabled={isFunding}
+                      className={`
+                        flex items-center space-x-1 px-2 py-1 rounded text-sm transition-colors
+                        ${isFunding 
+                          ? 'bg-primary/10 text-primary/50 cursor-not-allowed'
+                          : 'bg-primary/20 hover:bg-primary/30 text-primary cursor-pointer'
+                        }
+                      `}
+                    >
+                      <span>{isFunding ? 'Funding...' : 'Faucet'}</span>
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-text/70">
+                  <span className="font-mono truncate">{address}</span>
+                  <button
+                    onClick={handleCopyAddress}
+                    className="p-1 hover:bg-primary/20 rounded transition-colors"
+                  >
+                    {copiedAddress ? (
+                      <Check className="w-4 h-4 text-green-400" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-primary" />
+                    )}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8 text-text/70">
+                Connect your key to use the wallet
+              </div>
+            )}
           </div>
 
           {isConnected && (
