@@ -1,4 +1,3 @@
-import { Transaction } from 'xrpl';
 import { GraphData, GraphNode, GraphLink } from './types';
 import { dropsToXrp } from 'xrpl';
 
@@ -17,7 +16,7 @@ export class GraphBuilder {
     if (!this.nodes.has(node.id)) {
       this.nodes.set(node.id, {
         ...node,
-        value: node.type === 'wallet' ? 30 : 20 // Larger nodes for wallets
+        value: node.type === 'wallet' ? 30 : 20
       });
     }
   }
@@ -25,7 +24,6 @@ export class GraphBuilder {
   addLink(link: GraphLink): void {
     const linkId = `${link.source}-${link.target}`;
     if (!this.links.has(linkId)) {
-      // Ensure both nodes exist before adding the link
       if (this.nodes.has(link.source) && this.nodes.has(link.target)) {
         this.links.set(linkId, {
           ...link,
@@ -37,10 +35,9 @@ export class GraphBuilder {
 
   setAccountBalance(address: string, balance: string): void {
     this.accountBalances.set(address, balance);
-    // Update node label if it exists
     const node = this.nodes.get(address);
     if (node && node.type === 'wallet') {
-      node.label = `Account: ${address}\nBalance: ${balance} XRP`;
+      node.label = `Account: ${address}\nBalance: ${dropsToXrp(balance)} XRP`;
     }
   }
 

@@ -33,14 +33,16 @@ const Widget: React.FC<WidgetProps> = ({
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   useEffect(() => {
-    // Set widget to full width on mobile
     if (isMobile && widget) {
+      const mobileWidth = window.innerWidth - (LAYOUT.MOBILE_PADDING * 2);
+      const mobileHeight = Math.min(window.innerHeight * 0.8, widget.height || defaultSize?.height || LAYOUT.MIN_WIDGET_HEIGHT);
+      
       updateWidget({
         ...widget,
-        x: 0,
-        y: widget.y,
-        width: window.innerWidth,
-        height: Math.min(window.innerHeight * 0.8, widget.height || defaultSize?.height || LAYOUT.MIN_WIDGET_HEIGHT)
+        x: LAYOUT.MOBILE_PADDING,
+        width: mobileWidth,
+        height: mobileHeight,
+        isMaximized: false
       });
     }
   }, [isMobile]);
@@ -50,7 +52,7 @@ const Widget: React.FC<WidgetProps> = ({
   };
 
   const handleDragStart = (e: React.MouseEvent) => {
-    if (isMaximized || isMobile) return;
+    if (isMaximized) return;
     
     setIsDragging(true);
     dragRef.current = {
@@ -67,10 +69,19 @@ const Widget: React.FC<WidgetProps> = ({
     const deltaX = e.clientX - dragRef.current.startX;
     const deltaY = e.clientY - dragRef.current.startY;
 
+    let newX = dragRef.current.offsetX + deltaX;
+    let newY = dragRef.current.offsetY + deltaY;
+
+    if (isMobile) {
+      // On mobile, constrain to vertical movement only
+      newX = LAYOUT.MOBILE_PADDING;
+      newY = Math.max(LAYOUT.HEADER_HEIGHT, Math.min(newY, window.innerHeight - (widget.height || 0) - LAYOUT.FOOTER_HEIGHT));
+    }
+
     const updatedWidget = validateWidgetPosition({
       ...widget,
-      x: dragRef.current.offsetX + deltaX,
-      y: dragRef.current.offsetY + deltaY
+      x: newX,
+      y: newY
     });
 
     updateWidget(updatedWidget);
@@ -113,19 +124,30 @@ const Widget: React.FC<WidgetProps> = ({
   };
 
   const handleMaximize = () => {
-    if (!widget || isMobile) return;
+    if (!widget) return;
 
     const newState = !isMaximized;
     setIsMaximized(newState);
     
-    updateWidget({
-      id,
-      x: newState ? 0 : widget.x,
-      y: newState ? LAYOUT.HEADER_HEIGHT : widget.y,
-      width: newState ? window.innerWidth : (defaultSize?.width || LAYOUT.MIN_WIDGET_WIDTH),
-      height: newState ? window.innerHeight - LAYOUT.HEADER_HEIGHT - LAYOUT.FOOTER_HEIGHT : (defaultSize?.height || LAYOUT.MIN_WIDGET_HEIGHT),
-      isMaximized: newState
-    });
+    if (isMobile) {
+      updateWidget({
+        id,
+        x: LAYOUT.MOBILE_PADDING,
+        y: LAYOUT.HEADER_HEIGHT,
+        width: window.innerWidth - (LAYOUT.MOBILE_PADDING * 2),
+        height: window.innerHeight - LAYOUT.HEADER_HEIGHT - LAYOUT.FOOTER_HEIGHT,
+        isMaximized: newState
+      });
+    } else {
+      updateWidget({
+        id,
+        x: newState ? 0 : widget.x,
+        y: newState ? LAYOUT.HEADER_HEIGHT : widget.y,
+        width: newState ? window.innerWidth : (defaultSize?.width || LAYOUT.MIN_WIDGET_WIDTH),
+        height: newState ? window.innerHeight - LAYOUT.HEADER_HEIGHT - LAYOUT.FOOTER_HEIGHT : (defaultSize?.height || LAYOUT.MIN_WIDGET_HEIGHT),
+        isMaximized: newState
+      });
+    }
 
     bringToFront(id);
   };
@@ -147,9 +169,13 @@ const Widget: React.FC<WidgetProps> = ({
     if (isDragging) {
       window.addEventListener('mousemove', handleDrag);
       window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchmove', handleDrag as any);
+      window.addEventListener('touchend', handleDragEnd);
       return () => {
         window.removeEventListener('mousemove', handleDrag);
         window.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('touchmove', handleDrag as any);
+        window.removeEventListener('touchend', handleDragEnd);
       };
     }
   }, [isDragging]);
@@ -158,9 +184,13 @@ const Widget: React.FC<WidgetProps> = ({
     if (isResizing) {
       window.addEventListener('mousemove', handleResize);
       window.addEventListener('mouseup', handleResizeEnd);
+      window.addEventListener('touchmove', handleResize as any);
+      window.addEventListener('touchend', handleResizeEnd);
       return () => {
         window.removeEventListener('mousemove', handleResize);
         window.removeEventListener('mouseup', handleResizeEnd);
+        window.removeEventListener('touchmove', handleResize as any);
+        window.removeEventListener('touchend', handleResizeEnd);
       };
     }
   }, [isResizing]);
@@ -170,14 +200,13 @@ const Widget: React.FC<WidgetProps> = ({
   return (
     <div
       style={{
-        position: isMobile ? 'relative' : 'absolute',
-        left: isMobile ? 0 : widget.x,
-        top: isMobile ? 0 : widget.y,
-        width: isMobile ? '100%' : (widget.width || defaultSize?.width || LAYOUT.MIN_WIDGET_WIDTH),
+        position: 'absolute',
+        left: widget.x,
+        top: widget.y,
+        width: widget.width || defaultSize?.width || LAYOUT.MIN_WIDGET_WIDTH,
         height: widget.height || defaultSize?.height || LAYOUT.MIN_WIDGET_HEIGHT,
         zIndex: widget.zIndex || 1,
         maxHeight: `calc(100vh - ${LAYOUT.HEADER_HEIGHT + LAYOUT.FOOTER_HEIGHT + 40}px)`,
-        marginBottom: isMobile ? LAYOUT.FOOTER_HEIGHT + 20 : 0
       }}
       className="widget"
       onClick={handleClick}
@@ -185,6 +214,10 @@ const Widget: React.FC<WidgetProps> = ({
       <div
         className="flex items-center justify-between p-3 bg-primary-opacity border-b border-primary-opacity cursor-move"
         onMouseDown={handleDragStart}
+        onTouchStart={(e) => {
+          const touch = e.touches[0];
+          handleDragStart({ clientX: touch.clientX, clientY: touch.clientY } as React.MouseEvent);
+        }}
       >
         <div className="flex items-center space-x-2">
           <Icon className="w-5 h-5 text-primary" />
@@ -197,14 +230,12 @@ const Widget: React.FC<WidgetProps> = ({
           >
             <Minus className="w-4 h-4 text-text" />
           </button>
-          {!isMobile && (
-            <button
-              onClick={handleMaximize}
-              className="p-1 hover:bg-primary-opacity rounded transition-colors"
-            >
-              <Square className="w-4 h-4 text-text" />
-            </button>
-          )}
+          <button
+            onClick={handleMaximize}
+            className="p-1 hover:bg-primary-opacity rounded transition-colors"
+          >
+            <Square className="w-4 h-4 text-text" />
+          </button>
           <button
             onClick={handleClose}
             className="p-1 hover:bg-primary-opacity rounded transition-colors"
@@ -216,10 +247,14 @@ const Widget: React.FC<WidgetProps> = ({
       <div className="overflow-auto" style={{ height: 'calc(100% - 48px)' }}>
         {children}
       </div>
-      {!isMobile && !isMaximized && (
+      {!isMaximized && (
         <div
           className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
           onMouseDown={handleResizeStart}
+          onTouchStart={(e) => {
+            const touch = e.touches[0];
+            handleResizeStart({ clientX: touch.clientX, clientY: touch.clientY } as React.MouseEvent);
+          }}
         />
       )}
     </div>

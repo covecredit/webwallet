@@ -29,14 +29,17 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'framer-motion'],
+          vendor: ['react', 'react-dom'],
+          motion: ['framer-motion'],
           charts: ['lightweight-charts', 'recharts'],
-          xrpl: ['xrpl']
+          xrpl: ['xrpl'],
+          icons: ['lucide-react']
         }
       }
     }
   },
   optimizeDeps: {
+    include: ['buffer', 'process', 'events'],
     esbuildOptions: {
       target: 'esnext',
       define: {

@@ -10,8 +10,8 @@ import AccountInfo from './AccountInfo';
 import { SearchHistory } from './SearchHistory';
 import GraphContextMenu from './GraphContextMenu';
 import { LAYOUT } from '../../constants/layout';
-import { loadFromStorage, saveToStorage } from '../../utils/storage';
-import { STORAGE_KEYS } from '../../constants/storage';
+import { GRAPH_COLORS, NODE_SIZES } from '../../constants/colors';
+import { addToSearchHistory, clearSearchHistory, getSearchHistory } from '../../utils/searchHistory';
 
 const GraphPanel: React.FC = () => {
   const { isConnected } = useWalletStore();
@@ -27,6 +27,7 @@ const GraphPanel: React.FC = () => {
     y: number;
     node: any;
   } | null>(null);
+  const [copiedAddress, setCopiedAddress] = useState(false);
   const fgRef = useRef<any>();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,13 +38,10 @@ const GraphPanel: React.FC = () => {
 
       let data;
       if (searchTerm.startsWith('r') && searchTerm.length >= 25) {
-        // Account address
         data = await graphService.buildTransactionGraph(searchTerm, { limit: 50 });
       } else if (/^[A-F0-9]{64}$/i.test(searchTerm)) {
-        // Transaction hash
         data = await graphService.buildTransactionGraph(searchTerm, { type: 'transaction' });
       } else if (/^\d+$/.test(searchTerm)) {
-        // Ledger sequence
         data = await graphService.buildTransactionGraph(searchTerm, { type: 'ledger' });
       } else {
         throw new Error('Invalid search term. Enter an account address, transaction hash, or ledger sequence.');
@@ -51,14 +49,8 @@ const GraphPanel: React.FC = () => {
 
       setGraphData(data);
       setSelectedNode(data.nodes[0]);
+      addToSearchHistory(searchTerm);
 
-      // Add to search history
-      const history = loadFromStorage<string[]>(STORAGE_KEYS.SEARCH_HISTORY) || [];
-      const newHistory = [searchTerm, ...history.filter(term => term !== searchTerm)]
-        .slice(0, 10);
-      saveToStorage(STORAGE_KEYS.SEARCH_HISTORY, newHistory);
-
-      // Center graph after data loads
       setTimeout(() => {
         if (fgRef.current) {
           fgRef.current.zoomToFit(400, 50);
@@ -84,9 +76,42 @@ const GraphPanel: React.FC = () => {
 
   const handleNodeClick = useCallback((node: any) => {
     setSelectedNode(node);
-    setSearchQuery(node.id);
-    fetchGraphData(node.id);
-  }, [fetchGraphData]);
+    setContextMenu(null);
+  }, []);
+
+  const handleNodeRightClick = useCallback((node: any, event: any) => {
+    event.preventDefault();
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      node
+    });
+  }, []);
+
+  const handleContextMenuSearch = useCallback(() => {
+    if (contextMenu?.node) {
+      setSearchQuery(contextMenu.node.id);
+      fetchGraphData(contextMenu.node.id);
+      setContextMenu(null);
+    }
+  }, [contextMenu, fetchGraphData]);
+
+  const handleContextMenuCopy = useCallback(async () => {
+    if (contextMenu?.node) {
+      try {
+        await navigator.clipboard.writeText(contextMenu.node.id);
+        setCopiedAddress(true);
+        setTimeout(() => setCopiedAddress(false), 2000);
+      } catch (error) {
+        console.error('Failed to copy address:', error);
+      }
+    }
+  }, [contextMenu]);
+
+  const handleClearHistory = useCallback(() => {
+    clearSearchHistory();
+    setShowSearchHistory(false);
+  }, []);
 
   return (
     <Widget
@@ -131,6 +156,7 @@ const GraphPanel: React.FC = () => {
                   setSearchQuery(term);
                   fetchGraphData(term);
                 }}
+                onClear={handleClearHistory}
               />
             )}
           </div>
@@ -142,10 +168,83 @@ const GraphPanel: React.FC = () => {
           )}
 
           <div className="relative h-[350px] border border-primary/30 rounded-lg overflow-hidden">
-            {/* Rest of the component remains the same */}
+            {loading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <>
+                <ForceGraph2D
+                  ref={fgRef}
+                  graphData={graphData}
+                  nodeLabel="label"
+                  nodeColor={(node: any) => {
+                    switch (node.type) {
+                      case 'wallet':
+                        return GRAPH_COLORS.WALLET;
+                      case 'transaction':
+                        return GRAPH_COLORS.TRANSACTION;
+                      case 'ledger':
+                        return GRAPH_COLORS.LEDGER;
+                      case 'payment':
+                        return GRAPH_COLORS.PAYMENT;
+                      default:
+                        return GRAPH_COLORS.TRANSACTION;
+                    }
+                  }}
+                  nodeRelSize={(node: any) => {
+                    switch (node.type) {
+                      case 'wallet':
+                        return NODE_SIZES.WALLET;
+                      case 'transaction':
+                        return NODE_SIZES.TRANSACTION;
+                      case 'ledger':
+                        return NODE_SIZES.LEDGER;
+                      case 'payment':
+                        return NODE_SIZES.PAYMENT;
+                      default:
+                        return NODE_SIZES.TRANSACTION;
+                    }
+                  }}
+                  linkColor={() => GRAPH_COLORS.LINK}
+                  linkWidth={1.5}
+                  linkDirectionalParticles={2}
+                  linkDirectionalParticleWidth={2}
+                  linkDirectionalParticleColor={() => GRAPH_COLORS.PARTICLE}
+                  onNodeClick={handleNodeClick}
+                  onNodeRightClick={handleNodeRightClick}
+                  backgroundColor="transparent"
+                />
+                <GraphControls
+                  onZoomIn={() => fgRef.current?.zoomIn()}
+                  onZoomOut={() => fgRef.current?.zoomOut()}
+                  onCenter={() => {
+                    fgRef.current?.centerAt(0, 0, 1000);
+                    fgRef.current?.zoomToFit(400);
+                  }}
+                  onReset={() => {
+                    setGraphData({ nodes: [], links: [] });
+                    setSelectedNode(null);
+                    setSearchQuery('');
+                  }}
+                />
+              </>
+            )}
           </div>
 
           <AccountInfo selectedNode={selectedNode} />
+
+          {contextMenu && (
+            <GraphContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+              node={contextMenu.node}
+              onClose={() => setContextMenu(null)}
+              onSearch={handleContextMenuSearch}
+              onCopy={handleContextMenuCopy}
+              copiedAddress={copiedAddress}
+            />
+          )}
         </div>
       ) : (
         <div className="flex items-center justify-center h-full text-text/50">

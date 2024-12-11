@@ -4,11 +4,11 @@ import { loadFromStorage, saveToStorage } from '../../utils/storage';
 import { STORAGE_KEYS } from '../../constants/storage';
 
 interface SearchHistoryProps {
-  onSelect: (address: string) => void;
-  limit?: number;
+  onSelect: (term: string) => void;
+  onClear?: () => void;
 }
 
-export const SearchHistory: React.FC<SearchHistoryProps> = ({ onSelect, limit = 10 }) => {
+export const SearchHistory: React.FC<SearchHistoryProps> = ({ onSelect, onClear }) => {
   const [searches, setSearches] = React.useState<string[]>(() => 
     loadFromStorage<string[]>(STORAGE_KEYS.SEARCH_HISTORY) || []
   );
@@ -17,6 +17,7 @@ export const SearchHistory: React.FC<SearchHistoryProps> = ({ onSelect, limit = 
     e.stopPropagation();
     saveToStorage(STORAGE_KEYS.SEARCH_HISTORY, []);
     setSearches([]);
+    onClear?.();
   };
 
   const handleRemoveSearch = (e: React.MouseEvent, index: number) => {
@@ -44,11 +45,11 @@ export const SearchHistory: React.FC<SearchHistoryProps> = ({ onSelect, limit = 
         </button>
       </div>
       <div className="max-h-[200px] overflow-y-auto">
-        {searches.slice(0, limit).map((search, index) => (
+        {searches.map((search, index) => (
           <div
             key={index}
             onClick={() => onSelect(search)}
-            className="flex items-center justify-between p-3 hover:text-primary cursor-pointer group"
+            className="flex items-center justify-between p-3 hover:bg-primary/10 cursor-pointer group"
           >
             <span className="text-sm font-mono">{search}</span>
             <button

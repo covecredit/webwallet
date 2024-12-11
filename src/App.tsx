@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import MainLayout from './components/Layout/MainLayout';
 import WalletPanel from './components/Wallet/WalletPanel';
 import GraphPanel from './components/Graph/GraphPanel';
@@ -22,7 +22,7 @@ const App: React.FC = () => {
   // Initialize theme
   useTheme();
 
-  useEffect(() => {
+  React.useEffect(() => {
     const initializeServices = async () => {
       try {
         setError(null);

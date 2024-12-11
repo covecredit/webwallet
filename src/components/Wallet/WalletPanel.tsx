@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Anchor, Send, QrCode, History, Image, Info } from 'lucide-react';
+import { Anchor, Send, QrCode, History, Image, Info, Copy, Check } from 'lucide-react';
 import Widget from '../Widget/Widget';
 import WalletButton from '../WalletButton';
 import { useWalletStore } from '../../store/walletStore';
@@ -77,9 +77,9 @@ const WalletPanel: React.FC = () => {
         defaultSize={{ width: 400, height: 400 }}
       >
         <div className="p-6 space-y-6">
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div className="text-sm text-text/70">Balance</div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between">
               <div className="text-2xl font-bold text-primary">{balance.toFixed(6)} XRP</div>
               {canUseFaucet && (
                 <button
@@ -96,6 +96,19 @@ const WalletPanel: React.FC = () => {
                   <span>{isFunding ? 'Funding...' : 'Faucet'}</span>
                 </button>
               )}
+            </div>
+            <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-primary/30">
+              <div className="text-sm font-mono text-text/70 truncate">{address}</div>
+              <button
+                onClick={handleCopyAddress}
+                className="p-1 hover:bg-primary/20 rounded transition-colors ml-2"
+              >
+                {copiedAddress ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <Copy className="w-4 h-4 text-primary" />
+                )}
+              </button>
             </div>
           </div>
 
