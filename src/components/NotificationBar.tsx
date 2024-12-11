@@ -20,13 +20,13 @@ const NotificationBar: React.FC = () => {
 
       // Add exchange prices
       const exchanges = ['Bitfinex', 'Bitstamp', 'Kraken'] as const;
-      exchanges.forEach(exchange => {
+      exchanges.forEach((exchange) => {
         const price = exchangeManager.getLastPrice(exchange);
         if (price?.lastPrice) {
           newNotifications.push({
             id: `price-${exchange}`,
             message: `${exchange}: XRP/USD $${price.lastPrice.toFixed(4)}`,
-            type: 'price'
+            type: 'price',
           });
         }
       });
@@ -39,25 +39,25 @@ const NotificationBar: React.FC = () => {
             const [ledgerResponse, serverInfo] = await Promise.all([
               client.request({
                 command: 'ledger',
-                ledger_index: 'validated'
+                ledger_index: 'validated',
               }),
               client.request({
-                command: 'server_info'
-              })
+                command: 'server_info',
+              }),
             ]);
-            
+
             if (ledgerResponse.result.ledger) {
               newNotifications.push({
                 id: 'ledger',
                 message: `Latest Validated Ledger: #${ledgerResponse.result.ledger_index}`,
-                type: 'system'
+                type: 'system',
               });
 
               const network = xrplService.getCurrentNetwork();
               newNotifications.push({
                 id: 'network',
                 message: `Connected to ${network?.name} | Server Version: ${serverInfo.result.info.build_version}`,
-                type: 'system'
+                type: 'system',
               });
             }
           } catch (error) {
@@ -78,19 +78,21 @@ const NotificationBar: React.FC = () => {
       animate={{ opacity: 1 }}
       className="fixed bottom-0 left-0 right-0 h-12 bg-background/80 backdrop-blur border-t border-primary/20"
     >
-      <div 
+      <div
         className="h-full overflow-hidden"
-        style={{ maskImage: 'linear-gradient(90deg, transparent, black 10%, black 90%, transparent)' }}
+        style={{
+          maskImage: 'linear-gradient(90deg, transparent, black 10%, black 90%, transparent)',
+        }}
       >
-        <motion.div 
+        <motion.div
           className="h-full flex items-center space-x-16 whitespace-nowrap"
           animate={{
             x: [0, -2000],
             transition: {
               duration: 30,
               repeat: Infinity,
-              ease: "linear"
-            }
+              ease: 'linear',
+            },
           }}
         >
           {[...notifications, ...notifications].map((notification, index) => (

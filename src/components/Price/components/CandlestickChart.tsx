@@ -1,9 +1,9 @@
 import React from 'react';
-import { KrakenChart } from './KrakenChart';
-import { BitfinexChart } from './BitfinexChart';
-import { BitstampChart } from './BitstampChart';
-import { PriceData } from '../../../../types';
-import { KrakenPriceData } from '../../../../services/exchanges/kraken/types';
+import { KrakenChart } from './CandlestickChart/KrakenChart';
+import { BitfinexChart } from './CandlestickChart/BitfinexChart';
+import { BitstampChart } from './CandlestickChart/BitstampChart';
+import { PriceData } from '../../../types';
+import { KrakenPriceData } from '../../../services/exchanges/kraken/types';
 
 interface CandlestickChartProps {
   data: PriceData[] | KrakenPriceData[];

@@ -19,10 +19,12 @@ const PricePanel: React.FC = () => {
 
     const handleExchangeUpdate = ({ exchange, data }: { exchange: string; data: PriceData }) => {
       if (!data?.lastPrice) return;
-      
-      setExchangeData(prev => ({
+
+      setExchangeData((prev) => ({
         ...prev,
-        [exchange]: [...(prev[exchange] || []).slice(-100), data].sort((a, b) => a.timestamp - b.timestamp)
+        [exchange]: [...(prev[exchange] || []).slice(-100), data].sort(
+          (a, b) => a.timestamp - b.timestamp
+        ),
       }));
     };
 
@@ -45,19 +47,20 @@ const PricePanel: React.FC = () => {
   const getChartData = (): PriceData[] => {
     if (selectedExchange === 'All') {
       const combinedData = new Map<number, PriceData>();
-      
+
       Object.entries(exchangeData).forEach(([exchange, prices]) => {
-        prices.forEach(price => {
+        prices.forEach((price) => {
           if (!price?.lastPrice) return;
-          
+
           const timestamp = Math.floor(price.timestamp / 1000) * 1000;
           const existing = combinedData.get(timestamp);
-          
+
           if (!existing) {
             combinedData.set(timestamp, { ...price });
           } else {
             const count = existing.count || 1;
-            existing.lastPrice = ((existing.lastPrice || 0) * count + (price.lastPrice || 0)) / (count + 1);
+            existing.lastPrice =
+              ((existing.lastPrice || 0) * count + (price.lastPrice || 0)) / (count + 1);
             existing.high = Math.max(existing.high || 0, price.high || 0);
             existing.low = Math.min(existing.low || 0, price.low || 0);
             existing.volume = (existing.volume || 0) + (price.volume || 0);
@@ -71,7 +74,7 @@ const PricePanel: React.FC = () => {
         .map(({ count, ...data }) => data);
     }
 
-    return (exchangeData[selectedExchange] || []).filter(data => data?.lastPrice);
+    return (exchangeData[selectedExchange] || []).filter((data) => data?.lastPrice);
   };
 
   return (
@@ -91,16 +94,10 @@ const PricePanel: React.FC = () => {
             onExchangeChange={setSelectedExchange}
           />
 
-          <PriceStats 
-            exchangeData={exchangeData} 
-            selectedExchange={selectedExchange}
-          />
+          <PriceStats exchangeData={exchangeData} selectedExchange={selectedExchange} />
 
           <div className="h-[300px] bg-background/50 rounded-lg border border-primary/30">
-            <CandlestickChart
-              data={getChartData()}
-              exchange={selectedExchange}
-            />
+            <CandlestickChart data={getChartData()} exchange={selectedExchange} />
           </div>
         </div>
       </div>
