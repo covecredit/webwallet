@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, AlertTriangle, CheckCircle, Shield } from 'lucide-react';
+import { Copy, AlertTriangle, CheckCircle, Shield, Download } from 'lucide-react';
 import { useWalletStore } from '../../store/walletStore';
 import { useNetworkStore } from '../../store/networkStore';
 import { xrplService } from '../../services/xrpl';
@@ -18,6 +18,7 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ onClose }) => {
   const [copiedTag, setCopiedTag] = useState(false);
   const [destinationTag, setDestinationTag] = useState('');
   const [accountInfo, setAccountInfo] = useState<any>(null);
+  const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchAccountInfo = async () => {
@@ -67,6 +68,50 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ onClose }) => {
     setDestinationTag(tag.toString());
   };
 
+  const downloadQRCode = () => {
+    if (!qrRef.current) return;
+
+    const svg = qrRef.current.querySelector('svg');
+    if (!svg) return;
+
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size (with padding)
+    const padding = 20;
+    canvas.width = svg.clientWidth + (padding * 2);
+    canvas.height = svg.clientHeight + (padding * 2);
+
+    // Fill white background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Convert SVG to data URL
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    // Create image from SVG
+    const img = new Image();
+    img.onload = () => {
+      // Draw image centered with padding
+      ctx.drawImage(img, padding, padding);
+
+      // Convert to PNG and download
+      const pngUrl = canvas.toDataURL('image/png');
+      const downloadLink = document.createElement('a');
+      downloadLink.href = pngUrl;
+      downloadLink.download = `xrp-address-${address}.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
+
   return (
     <Widget
       id="receive"
@@ -113,7 +158,7 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ onClose }) => {
         </div>
 
         <div className="flex justify-center">
-          <div className="p-4 bg-white rounded-lg">
+          <div ref={qrRef} className="relative p-4 bg-white rounded-lg group">
             <QRCodeSVG
               value={address}
               size={200}
@@ -128,6 +173,13 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ onClose }) => {
                 excavate: true,
               }}
             />
+            <button
+              onClick={downloadQRCode}
+              className="absolute top-2 right-2 p-2 bg-primary/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/30"
+              title="Download QR Code"
+            >
+              <Download className="w-5 h-5 text-primary" />
+            </button>
           </div>
         </div>
 

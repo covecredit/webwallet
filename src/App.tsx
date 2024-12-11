@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import MainLayout from './components/Layout/MainLayout';
 import WalletPanel from './components/Wallet/WalletPanel';
 import GraphPanel from './components/Graph/GraphPanel';
@@ -8,52 +8,17 @@ import UtilitiesPanel from './components/Utilities/UtilitiesPanel';
 import ChatWidget from './components/Chat/ChatWidget';
 import { useWidgetStore } from './store/widgetStore';
 import { useTheme } from './hooks/useTheme';
-import { exchangeManager } from './services/exchanges';
-import { xrplService } from './services/xrpl';
+import { useInitialization } from './hooks/useInitialization';
 import { useNetworkStore } from './store/networkStore';
-import { Anchor } from 'lucide-react';
+import { Anchor, AlertTriangle } from 'lucide-react';
 
 const App: React.FC = () => {
   const { widgets } = useWidgetStore();
   const { selectedNetwork } = useNetworkStore();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [loadingStatus, setLoadingStatus] = useState('Initializing...');
+  const { isLoading, error, status, retries } = useInitialization(selectedNetwork);
   
   // Initialize theme
   useTheme();
-
-  React.useEffect(() => {
-    const initializeServices = async () => {
-      try {
-        setError(null);
-        
-        // Connect to XRPL network first
-        setLoadingStatus('Connecting to XRPL network...');
-        await xrplService.connect(selectedNetwork);
-        
-        // Then initialize exchange data with staggered connections
-        setLoadingStatus('Initializing market data feeds...');
-        await exchangeManager.connect();
-        
-        // Wait a bit to ensure initial data is loaded
-        setLoadingStatus('Loading initial data...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } catch (error: any) {
-        console.error('Service initialization error:', error);
-        setError(error.message || 'Failed to initialize services');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeServices();
-
-    return () => {
-      exchangeManager.disconnect();
-      xrplService.disconnect();
-    };
-  }, [selectedNetwork]);
 
   if (isLoading) {
     return (
@@ -66,10 +31,22 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="spinner" />
-          <div className="text-sm text-text/70 mt-4">{loadingStatus}</div>
+          <div className="text-sm text-text/70 mt-4">{status}</div>
           {error && (
-            <div className="text-red-500 text-sm max-w-md mx-auto mt-2">
-              {error}
+            <div className="flex items-start space-x-2 mt-4 max-w-md mx-auto bg-red-500/10 border border-red-500/30 p-3 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-red-500">
+                <div className="font-medium mb-1">Initialization Error</div>
+                <div>{error}</div>
+                {retries >= 3 && (
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="mt-2 px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
+                  >
+                    Refresh Page
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

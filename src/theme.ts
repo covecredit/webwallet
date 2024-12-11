@@ -1,77 +1,41 @@
-export const themes = {
-  gold: {
-    primary: '#FFD700',
-    secondary: '#4A90E2',
-    background: '#1A1B26',
-    text: '#E6E8E6'
-  },
-  red: {
-    primary: '#FF4444',
-    secondary: '#FF8888',
-    background: '#1A1616',
-    text: '#E6E8E6'
-  },
-  green: {
-    primary: '#00CC66',
-    secondary: '#66FF99',
-    background: '#162016',
-    text: '#E6E8E6'
-  },
-  lightBlue: {
-    primary: '#00BFFF',
-    secondary: '#87CEEB',
-    background: '#1A1A26',
-    text: '#E6E8E6'
-  },
-  darkBlue: {
-    primary: '#4169E1',
-    secondary: '#6495ED',
-    background: '#161A26',
-    text: '#E6E8E6'
-  },
-  purple: {
-    primary: '#9B59B6',
-    secondary: '#C39BD3',
-    background: '#1A1626',
-    text: '#E6E8E6'
-  },
-  orange: {
-    primary: '#FF8C00',
-    secondary: '#FFA500',
-    background: '#261A16',
-    text: '#E6E8E6'
-  },
-  teal: {
-    primary: '#20B2AA',
-    secondary: '#48D1CC',
-    background: '#162626',
-    text: '#E6E8E6'
-  },
-  pink: {
-    primary: '#FF69B4',
-    secondary: '#FFB6C1',
-    background: '#261626',
-    text: '#E6E8E6'
-  },
-  sunset: {
-    primary: '#FF6B6B',
-    secondary: '#FFA07A',
-    background: '#2D1F2D',
-    text: '#FFE4E1'
+import { ThemeName } from '../types/theme';
+import { themes, DEFAULT_THEME } from '../constants/theme';
+import { STORAGE_KEYS } from '../constants/storage';
+import { loadFromStorage, saveToStorage } from './storage';
+import { hexToRgb } from './color';
+
+export const isValidTheme = (theme: string): theme is ThemeName => {
+  return theme in themes;
+};
+
+export const loadTheme = (): ThemeName => {
+  const savedTheme = loadFromStorage<string>(STORAGE_KEYS.THEME);
+  if (savedTheme && isValidTheme(savedTheme)) {
+    return savedTheme;
   }
-} as const;
+  return DEFAULT_THEME;
+};
 
-export const DEFAULT_THEME = 'gold';
+export const saveTheme = (theme: ThemeName): void => {
+  saveToStorage(STORAGE_KEYS.THEME, theme);
+};
 
-export const themeNames = {
-  gold: 'Gold',
-  red: 'Ruby',
-  green: 'Emerald',
-  lightBlue: 'Sapphire',
-  darkBlue: 'Ocean',
-  purple: 'Amethyst',
-  orange: 'Amber',
-  teal: 'Turquoise',
-  pink: 'Rose Quartz',
-  sunset: 'Sunset'
-} as const;
+export const applyTheme = (theme: ThemeName): void => {
+  const colors = themes[theme];
+  if (!colors) return;
+
+  const root = document.documentElement;
+  
+  root.style.setProperty('--primary', colors.primary);
+  root.style.setProperty('--primary-rgb', hexToRgb(colors.primary));
+  root.style.setProperty('--secondary', colors.secondary);
+  root.style.setProperty('--secondary-rgb', hexToRgb(colors.secondary));
+  root.style.setProperty('--background', colors.background);
+  root.style.setProperty('--background-rgb', hexToRgb(colors.background));
+  root.style.setProperty('--text', colors.text);
+  root.style.setProperty('--text-rgb', hexToRgb(colors.text));
+
+  root.style.setProperty('color-scheme', 'dark');
+  document.body.style.backgroundColor = colors.background;
+  document.body.style.color = colors.text;
+};

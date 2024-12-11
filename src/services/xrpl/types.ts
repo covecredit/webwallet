@@ -1,30 +1,32 @@
-import { Payment } from 'xrpl';
+import { Client, Wallet } from 'xrpl';
+import { NetworkConfig } from '../../types/network';
 
-export interface TransactionParams {
+export interface XRPLServiceInterface {
+  connect(network: NetworkConfig): Promise<void>;
+  disconnect(): Promise<void>;
+  createWallet(seed: string): Promise<{ wallet: Wallet; balance: number }>;
+  sendXRP(params: {
+    amount: string;
+    destination: string;
+    destinationTag?: string;
+  }): Promise<string>;
+  getClient(): Client | null;
+  getWallet(): Wallet | null;
+  isConnected(): boolean;
+  getCurrentNetwork(): NetworkConfig | null;
+}
+
+export interface TransactionOptions {
   amount: string;
   destination: string;
   destinationTag?: string;
-  wallet: any;
-  fee?: string;
+  wallet: Wallet;
 }
 
-export interface PaymentParams {
-  account: string;
-  destination: string;
-  amount: string;
-  sequence: number;
-  lastLedgerSequence: number;
-  destinationTag?: string;
-  fee?: string;
-}
-
-export interface ValidationResult {
-  isValid: boolean;
-  error?: string;
-}
-
-export interface PreparedPayment extends Payment {
-  Sequence: number;
-  LastLedgerSequence: number;
-  Fee?: string;
+export interface TransactionError extends Error {
+  data?: {
+    error?: string;
+    error_code?: number;
+    error_message?: string;
+  };
 }

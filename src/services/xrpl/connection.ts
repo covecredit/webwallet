@@ -164,3 +164,4 @@ export class ConnectionService extends EventEmitter {
 }
 
 export const connectionService = new ConnectionService();
+export default connectionService;

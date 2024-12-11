@@ -11,7 +11,7 @@ import { SearchHistory } from './SearchHistory';
 import GraphContextMenu from './GraphContextMenu';
 import { LAYOUT } from '../../constants/layout';
 import { GRAPH_COLORS, NODE_SIZES } from '../../constants/colors';
-import { addToSearchHistory, clearSearchHistory } from '../../utils/searchHistory';
+import { addToSearchHistory } from '../../utils/searchHistory';
 
 const GraphPanel: React.FC = () => {
   const { isConnected } = useWalletStore();
@@ -30,37 +30,12 @@ const GraphPanel: React.FC = () => {
   const fgRef = useRef<any>();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const getNodeSize = (node: any) => {
-    switch (node.type) {
-      case 'wallet':
-        return NODE_SIZES.WALLET;
-      case 'transaction':
-        return NODE_SIZES.TRANSACTION;
-      case 'ledger':
-        return NODE_SIZES.LEDGER;
-      case 'payment':
-        return NODE_SIZES.PAYMENT;
-      default:
-        return NODE_SIZES.TRANSACTION;
-    }
-  };
-
   const fetchGraphData = useCallback(async (searchTerm: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      let data;
-      if (searchTerm.startsWith('r') && searchTerm.length >= 25) {
-        data = await graphService.buildTransactionGraph(searchTerm, { limit: 50 });
-      } else if (/^[A-F0-9]{64}$/i.test(searchTerm)) {
-        data = await graphService.buildTransactionGraph(searchTerm, { type: 'transaction' });
-      } else if (/^\d+$/.test(searchTerm)) {
-        data = await graphService.buildTransactionGraph(searchTerm, { type: 'ledger' });
-      } else {
-        throw new Error('Invalid search term. Enter an account address, transaction hash, or ledger sequence.');
-      }
-
+      const data = await graphService.buildTransactionGraph(searchTerm);
       setGraphData(data);
       setSelectedNode(data.nodes[0]);
       addToSearchHistory(searchTerm);
@@ -122,136 +97,115 @@ const GraphPanel: React.FC = () => {
     }
   }, [contextMenu]);
 
-  const handleClearHistory = useCallback(() => {
-    clearSearchHistory();
-    setShowSearchHistory(false);
-  }, []);
-
   return (
     <Widget
       id="graph"
-      title="Chain eXplorer"
+      title="Chain Explorer"
       icon={Activity}
       defaultPosition={{ x: 360, y: LAYOUT.HEADER_HEIGHT + LAYOUT.WIDGET_MARGIN }}
       defaultSize={{ width: 1000, height: 600 }}
     >
-      {isConnected ? (
-        <div className="space-y-4 p-4">
-          <div className="relative">
-            <form onSubmit={handleSearch} className="flex space-x-2">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setShowSearchHistory(true)}
-                onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
-                placeholder="Enter XRPL address, transaction hash, or ledger sequence..."
-                className="flex-1 px-4 py-2 bg-background/50 border border-primary/30 rounded-lg 
-                         text-text placeholder-text/50 focus:outline-none focus:border-primary"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 hover:text-primary text-primary/70 rounded-lg 
-                         transition-colors flex items-center space-x-2"
-              >
-                <Search className="w-5 h-5" />
-                <span>Search</span>
-              </button>
-            </form>
+      <div className="p-4 space-y-4">
+        {isConnected ? (
+          <>
+            <div className="relative">
+              <form onSubmit={handleSearch} className="flex space-x-2">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setShowSearchHistory(true)}
+                  onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
+                  placeholder="Enter XRPL address, transaction hash, or ledger sequence..."
+                  className="flex-1 px-4 py-2 bg-background/50 border border-primary/30 rounded-lg 
+                           text-text placeholder-text/50 focus:outline-none focus:border-primary"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg 
+                           transition-colors flex items-center space-x-2"
+                >
+                  <Search className="w-5 h-5" />
+                  <span>Search</span>
+                </button>
+              </form>
 
-            {showSearchHistory && (
-              <SearchHistory
-                onSelect={(term) => {
-                  setSearchQuery(term);
-                  fetchGraphData(term);
-                }}
-                onClear={handleClearHistory}
-              />
-            )}
-          </div>
-
-          {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-              <p className="text-sm text-red-500">{error}</p>
+              {showSearchHistory && (
+                <SearchHistory
+                  onSelect={(term) => {
+                    setSearchQuery(term);
+                    fetchGraphData(term);
+                  }}
+                />
+              )}
             </div>
-          )}
 
-          <div className="relative h-[350px] border border-primary/30 rounded-lg overflow-hidden">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            {error && (
+              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <p className="text-sm text-red-500">{error}</p>
               </div>
-            ) : (
-              <>
-                <ForceGraph2D
-                  ref={fgRef}
-                  graphData={graphData}
-                  nodeLabel="label"
-                  nodeColor={(node: any) => {
-                    switch (node.type) {
-                      case 'wallet':
-                        return GRAPH_COLORS.WALLET;
-                      case 'transaction':
-                        return GRAPH_COLORS.TRANSACTION;
-                      case 'ledger':
-                        return GRAPH_COLORS.LEDGER;
-                      case 'payment':
-                        return GRAPH_COLORS.PAYMENT;
-                      default:
-                        return GRAPH_COLORS.TRANSACTION;
-                    }
-                  }}
-                  nodeVal={getNodeSize}
-                  linkColor={() => GRAPH_COLORS.LINK}
-                  linkWidth={1.5}
-                  linkDirectionalParticles={2}
-                  linkDirectionalParticleWidth={2}
-                  linkDirectionalParticleColor={() => GRAPH_COLORS.PARTICLE}
-                  onNodeClick={handleNodeClick}
-                  onNodeRightClick={handleNodeRightClick}
-                  backgroundColor="transparent"
-                />
-                <GraphControls
-                  onZoomIn={() => fgRef.current?.zoomIn()}
-                  onZoomOut={() => fgRef.current?.zoomOut()}
-                  onCenter={() => {
-                    fgRef.current?.centerAt(0, 0, 1000);
-                    fgRef.current?.zoomToFit(400);
-                  }}
-                  onReset={() => {
-                    setGraphData({ nodes: [], links: [] });
-                    setSelectedNode(null);
-                    setSearchQuery('');
-                  }}
-                />
-              </>
             )}
+
+            <div className="relative h-[350px] border border-primary/30 rounded-lg overflow-hidden">
+              {loading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <>
+                  <ForceGraph2D
+                    ref={fgRef}
+                    graphData={graphData}
+                    nodeLabel="label"
+                    nodeColor={(node: any) => GRAPH_COLORS[node.type] || GRAPH_COLORS.TRANSACTION}
+                    nodeVal={(node: any) => NODE_SIZES[node.type] || NODE_SIZES.TRANSACTION}
+                    linkColor={() => GRAPH_COLORS.LINK}
+                    linkWidth={1.5}
+                    linkDirectionalParticles={2}
+                    linkDirectionalParticleWidth={2}
+                    linkDirectionalParticleColor={() => GRAPH_COLORS.PARTICLE}
+                    onNodeClick={handleNodeClick}
+                    onNodeRightClick={handleNodeRightClick}
+                    backgroundColor="transparent"
+                  />
+                  <GraphControls
+                    onZoomIn={() => fgRef.current?.zoomIn()}
+                    onZoomOut={() => fgRef.current?.zoomOut()}
+                    onCenter={() => {
+                      fgRef.current?.centerAt(0, 0, 1000);
+                      fgRef.current?.zoomToFit(400);
+                    }}
+                    onReset={() => {
+                      setGraphData({ nodes: [], links: [] });
+                      setSelectedNode(null);
+                      setSearchQuery('');
+                    }}
+                  />
+                </>
+              )}
+            </div>
+
+            <AccountInfo selectedNode={selectedNode} />
+
+            {contextMenu && (
+              <GraphContextMenu
+                x={contextMenu.x}
+                y={contextMenu.y}
+                node={contextMenu.node}
+                onClose={() => setContextMenu(null)}
+                onSearch={handleContextMenuSearch}
+                onCopy={handleContextMenuCopy}
+                copiedAddress={copiedAddress}
+              />
+            )}
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-full text-text/50">
+            Connect your wallet to explore the XRPL chain
           </div>
-
-          <AccountInfo selectedNode={selectedNode} />
-
-          {contextMenu && (
-            <GraphContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              node={contextMenu.node}
-              onClose={() => setContextMenu(null)}
-              onSearch={handleContextMenuSearch}
-              onCopy={handleContextMenuCopy}
-              copiedAddress={copiedAddress}
-            />
-          )}
-        </div>
-      ) : (
-        <div className="flex items-center justify-center h-full text-text/50">
-          Connect your wallet to explore the XRPL chain
-        </div>
-      )}
+        )}
+      </div>
     </Widget>
   );
 };

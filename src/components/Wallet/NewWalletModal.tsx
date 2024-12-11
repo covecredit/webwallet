@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Shield } from 'lucide-react';
+import { AlertTriangle, Shield, Copy, Check } from 'lucide-react';
 import Modal from '../Modal/Modal';
 import { generateMnemonic, validateMnemonic } from '../../utils/mnemonic';
 import { useWalletStore } from '../../store/walletStore';
@@ -17,18 +17,41 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
   const [hasAcknowledged, setHasAcknowledged] = useState(false);
+  const [copiedPhrase, setCopiedPhrase] = useState(false);
   const { connect } = useWalletStore();
 
   useEffect(() => {
     if (!isRecovery) {
       try {
         const words = generateMnemonic();
+        console.log('Generated mnemonic words:', words);
         setMnemonic(words);
       } catch (error: any) {
+        console.error('Failed to generate mnemonic:', error);
         setError(error.message || 'Failed to generate wallet');
       }
     }
   }, [isRecovery]);
+
+  const handleCopyPhrase = async () => {
+    try {
+      await navigator.clipboard.writeText(mnemonic.join(' '));
+      setCopiedPhrase(true);
+      setTimeout(() => setCopiedPhrase(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy phrase:', error);
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text');
+    const words = text.trim().split(/\s+/);
+    if (words.length === 24) {
+      console.log('Pasting mnemonic words:', words);
+      setUserInput(words);
+    }
+  };
 
   const handleInputChange = (index: number, value: string) => {
     const newInput = [...userInput];
@@ -59,7 +82,10 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
         throw new Error('Please acknowledge that you have written down your recovery phrase');
       }
 
+      console.log('Validating mnemonic...');
       const seed = await validateMnemonic(isRecovery ? userInput : mnemonic);
+      console.log('Generated seed:', seed);
+      
       await connect(seed);
       onClose();
     } catch (error: any) {
@@ -69,29 +95,6 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
       setIsProcessing(false);
     }
   };
-
-  const renderRecoveryWarning = () => (
-    <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-lg flex items-start space-x-2">
-      <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-      <div className="text-sm">
-        <p className="font-medium text-red-500">Recovery Mode</p>
-        <p className="text-red-400">
-          Only enter your recovery phrase if you are restoring an existing wallet. 
-          Verify you are on the correct website.
-        </p>
-      </div>
-    </div>
-  );
-
-  const renderNewWalletWarning = () => (
-    <div className="bg-primary/5 border border-primary/20 p-3 rounded-lg flex items-start space-x-2">
-      <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-      <div className="text-sm space-y-1">
-        <p className="font-medium text-primary">Security Notice</p>
-        <p className="text-text/70">Write these 24 words on paper and store securely. Never save digitally. Cannot be recovered if lost.</p>
-      </div>
-    </div>
-  );
 
   return (
     <Modal 
@@ -106,7 +109,13 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
-            {renderNewWalletWarning()}
+            <div className="bg-primary/5 border border-primary/20 p-3 rounded-lg flex items-start space-x-2">
+              <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div className="text-sm space-y-1">
+                <p className="font-medium text-primary">Security Notice</p>
+                <p className="text-text/70">Write these 24 words on paper and store securely. Never save digitally. Cannot be recovered if lost.</p>
+              </div>
+            </div>
 
             <div className="grid grid-cols-4 gap-3 bg-background/50 p-3 rounded-lg border border-primary/20">
               {mnemonic.map((word, index) => (
@@ -118,6 +127,25 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
                   <span className="font-mono">{word}</span>
                 </div>
               ))}
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleCopyPhrase}
+                className="flex items-center space-x-2 px-3 py-1.5 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors"
+              >
+                {copiedPhrase ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copy Phrase to Clipboard</span>
+                  </>
+                )}
+              </button>
             </div>
 
             <div className="flex items-center justify-between border-t border-primary/10 pt-4">
@@ -151,13 +179,27 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
-            {isRecovery ? renderRecoveryWarning() : (
+            {isRecovery ? (
+              <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-lg flex items-start space-x-2">
+                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-red-500">Recovery Mode</p>
+                  <p className="text-red-400">
+                    Only enter your recovery phrase if you are restoring an existing wallet. 
+                    Verify you are on the correct website.
+                  </p>
+                </div>
+              </div>
+            ) : (
               <div className="text-sm text-text/70">
                 Enter your 24 words in order to verify:
               </div>
             )}
 
-            <div className="grid grid-cols-4 gap-4 bg-background/50 p-4 rounded-lg border border-primary/20">
+            <div 
+              className="grid grid-cols-4 gap-4 bg-background/50 p-4 rounded-lg border border-primary/20"
+              onPaste={handlePaste}
+            >
               {userInput.map((word, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   <span className="text-primary/70 text-sm w-6">{index + 1}.</span>

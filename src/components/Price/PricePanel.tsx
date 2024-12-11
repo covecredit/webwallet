@@ -1,29 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart } from 'lucide-react';
-import Widget from '../../Widget/Widget';
-import { exchangeManager } from '../../../services/exchanges';
-import { coincapService } from '../../../services/coincap';
-import { CandlestickChart, PriceStats, MarketInfo, ExchangeSelector } from '.';
-import { LAYOUT } from '../../../constants/layout';
-import type { PriceData } from '../../../types';
-import type { ExchangeName } from '../../../services/exchanges';
+import Widget from '../Widget/Widget';
+import { exchangeManager } from '../../services/exchanges';
+import { coincapService } from '../../services/coincap';
+import { 
+  CandlestickChart,
+  PriceStats,
+  KrakenStats,
+  MarketInfo,
+  ExchangeSelector 
+} from './components';
+import { LAYOUT } from '../../constants/layout';
+import type { PriceData } from '../../types';
+import type { ExchangeName } from '../../services/exchanges';
+import type { KrakenPriceData } from '../../services/exchanges/kraken/types';
 
 const PricePanel: React.FC = () => {
   const [selectedExchange, setSelectedExchange] = useState<ExchangeName | 'All'>('Bitfinex');
   const [exchangeData, setExchangeData] = useState<Record<string, PriceData[]>>({});
+  const [krakenData, setKrakenData] = useState<KrakenPriceData[]>([]);
   const [marketData, setMarketData] = useState<any>(null);
 
   useEffect(() => {
     exchangeManager.connect();
     coincapService.connect();
 
-    const handleExchangeUpdate = ({ exchange, data }: { exchange: string; data: PriceData }) => {
+    const handleExchangeUpdate = ({ exchange, data }: { exchange: string; data: PriceData | KrakenPriceData }) => {
       if (!data?.lastPrice) return;
-      
-      setExchangeData(prev => ({
-        ...prev,
-        [exchange]: [...(prev[exchange] || []).slice(-100), data].sort((a, b) => a.timestamp - b.timestamp)
-      }));
+
+      if (exchange === 'Kraken') {
+        setKrakenData(prev => [...prev.slice(-100), data as KrakenPriceData]);
+      } else {
+        setExchangeData(prev => ({
+          ...prev,
+          [exchange]: [...(prev[exchange] || []).slice(-100), data as PriceData]
+        }));
+      }
     };
 
     const handleMarketUpdate = (data: any) => {
@@ -42,7 +54,11 @@ const PricePanel: React.FC = () => {
     };
   }, []);
 
-  const getChartData = (): PriceData[] => {
+  const getChartData = () => {
+    if (selectedExchange === 'Kraken') {
+      return krakenData;
+    }
+
     if (selectedExchange === 'All') {
       const combinedData = new Map<number, PriceData>();
       
@@ -67,11 +83,10 @@ const PricePanel: React.FC = () => {
       });
 
       return Array.from(combinedData.values())
-        .sort((a, b) => a.timestamp - b.timestamp)
-        .map(({ count, ...data }) => data);
+        .sort((a, b) => a.timestamp - b.timestamp);
     }
 
-    return (exchangeData[selectedExchange] || []).filter(data => data?.lastPrice);
+    return exchangeData[selectedExchange] || [];
   };
 
   return (
@@ -91,10 +106,11 @@ const PricePanel: React.FC = () => {
             onExchangeChange={setSelectedExchange}
           />
 
-          <PriceStats 
-            exchangeData={exchangeData} 
-            selectedExchange={selectedExchange}
-          />
+          {selectedExchange === 'Kraken' ? (
+            <KrakenStats data={krakenData[krakenData.length - 1]} />
+          ) : (
+            <PriceStats exchangeData={exchangeData} selectedExchange={selectedExchange} />
+          )}
 
           <div className="h-[300px] bg-background/50 rounded-lg border border-primary/30">
             <CandlestickChart

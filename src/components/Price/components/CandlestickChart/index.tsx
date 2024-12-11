@@ -4,10 +4,10 @@ import { useThemeStore } from '../../../../store/themeStore';
 import { themes } from '../../../../constants/theme';
 import { hexToRgb } from '../../../../utils/color';
 import { formatTimestamp } from '../../../../utils/date';
+import { PriceData } from '../../../../types';
 import { ChartTooltip } from './ChartTooltip';
-import { useChartConfig } from './useChartConfig';
-import { useChartData } from './useChartData';
-import type { PriceData } from '../../../../types';
+import { useChartConfig } from './hooks/useChartConfig';
+import { useChartData } from './hooks/useChartData';
 
 interface CandlestickChartProps {
   data: PriceData[];
@@ -23,7 +23,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const { currentTheme } = useThemeStore();
   const colors = themes[currentTheme];
-
   const { chartConfig } = useChartConfig(colors);
   const { processChartData } = useChartData();
 
@@ -55,18 +54,15 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
 
     if (exchange === 'All') {
       const seriesData = param.seriesData;
-      if (!seriesData) return;
+      if (!seriesData?.size) return;
       
       content += Array.from(seriesData.entries()).map(([series, value]) => {
+        if (!series?.options) return '';
         const exchange = series.options().title as string;
         const color = series.options().color as string;
-        return `<div style="color: ${color}">${exchange}: $${value?.value?.toFixed(4) || 'N/A'}</div>`;
-      }).join('');
-    } else if (exchange === 'Bitstamp') {
-      const data = param.seriesData?.get(lineSeriesRefs.current.get('Bitstamp'));
-      if (data?.value) {
-        content += `<div>Price: $${data.value.toFixed(4)}</div>`;
-      }
+        return value?.value !== undefined ? 
+          `<div style="color: ${color}">${exchange}: $${value.value.toFixed(4)}</div>` : '';
+      }).filter(Boolean).join('');
     } else {
       const data = param.seriesData?.get(seriesRef.current);
       if (data) {
@@ -109,7 +105,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data, exchange }) =
       seriesRef.current = null;
       lineSeriesRefs.current.clear();
     };
-  }, [colors, handleResize, updateTooltip, chartConfig]);
+  }, [chartConfig, handleResize, updateTooltip]);
 
   useEffect(() => {
     if (!chartRef.current || !data?.length) return;
