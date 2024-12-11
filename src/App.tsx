@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import MainLayout from './components/Layout/MainLayout';
 import WalletPanel from './components/Wallet/WalletPanel';
 import GraphPanel from './components/Graph/GraphPanel';
@@ -8,17 +8,46 @@ import UtilitiesPanel from './components/Utilities/UtilitiesPanel';
 import ChatWidget from './components/Chat/ChatWidget';
 import { useWidgetStore } from './store/widgetStore';
 import { useTheme } from './hooks/useTheme';
-import { useInitialization } from './hooks/useInitialization';
-import { useNetworkStore } from './store/networkStore';
+import { initializationService } from './services/initialization';
+import { useWalletStore } from './store/walletStore';
 import { Anchor, AlertTriangle } from 'lucide-react';
 
 const App: React.FC = () => {
   const { widgets } = useWidgetStore();
-  const { selectedNetwork } = useNetworkStore();
-  const { isLoading, error, status, retries } = useInitialization(selectedNetwork);
+  const { autoConnect } = useWalletStore();
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<Error | null>(null);
+  const [status, setStatus] = React.useState('Initializing...');
   
   // Initialize theme
   useTheme();
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        // Listen for initialization status updates
+        initializationService.on('status', setStatus);
+        initializationService.on('error', setError);
+        
+        // Initialize market data only
+        await initializationService.initialize();
+        
+        // Try auto-connect if saved credentials exist
+        await autoConnect();
+      } catch (err) {
+        console.error('Initialization error:', err);
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      initializationService.removeAllListeners();
+    };
+  }, [autoConnect]);
 
   if (isLoading) {
     return (
@@ -37,15 +66,7 @@ const App: React.FC = () => {
               <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-red-500">
                 <div className="font-medium mb-1">Initialization Error</div>
-                <div>{error}</div>
-                {retries >= 3 && (
-                  <button 
-                    onClick={() => window.location.reload()}
-                    className="mt-2 px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
-                  >
-                    Refresh Page
-                  </button>
-                )}
+                <div>{error.message}</div>
               </div>
             </div>
           )}

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { IChartApi, ISeriesApi } from 'lightweight-charts';
-import { ThemeColors } from '../../../../types/theme';
-import { PriceData } from '../../../../types';
+import { ThemeColors } from '../../../../../types/theme';
+import { PriceData } from '../../../../../types';
 
 interface ProcessChartDataParams {
   chart: IChartApi;
@@ -12,22 +12,16 @@ interface ProcessChartDataParams {
   existingLines: Map<string, ISeriesApi<"Line">>;
 }
 
-// Define fixed colors for exchanges
 const EXCHANGE_COLORS = {
-  Bitfinex: '#FF6B6B',  // Coral red
-  Bitstamp: '#4ECB71',  // Green
-  Kraken: '#6B8AFF'     // Blue
+  Bitfinex: '#FF6B6B',
+  Bitstamp: '#4ECB71',
+  Kraken: '#6B8AFF'
 };
 
 export const useChartData = () => {
-  const processChartData = useCallback(({
-    chart,
-    data,
-    exchange,
-    colors,
-    existingSeries,
-    existingLines
-  }: ProcessChartDataParams) => {
+  const processChartData = useCallback((params: ProcessChartDataParams) => {
+    const { chart, data, exchange, colors, existingSeries, existingLines } = params;
+
     // Clear existing series
     if (existingSeries) {
       chart.removeSeries(existingSeries);
@@ -43,7 +37,9 @@ export const useChartData = () => {
              d?.timestamp !== undefined && !isNaN(d.timestamp);
     });
 
-    if (!validData.length) return { series: null, lines: new Map() };
+    if (!validData.length) {
+      return { series: null, lines: new Map() };
+    }
 
     if (exchange === 'All') {
       const exchangeData = validData.reduce((acc, item) => {
@@ -84,48 +80,6 @@ export const useChartData = () => {
       });
 
       return { series: null, lines };
-    } else if (exchange === 'Bitstamp') {
-      const lineSeries = chart.addLineSeries({
-        color: colors.primary,
-        lineWidth: 2,
-        title: 'Bitstamp',
-        priceFormat: {
-          type: 'price',
-          precision: 4,
-          minMove: 0.0001,
-        },
-        crosshairMarkerVisible: true,
-        lastValueVisible: true,
-      });
-
-      const areaSeries = chart.addAreaSeries({
-        topColor: `rgba(${colors.primary}, 0.4)`,
-        bottomColor: `rgba(${colors.primary}, 0.0)`,
-        lineColor: 'transparent',
-        priceFormat: {
-          type: 'price',
-          precision: 4,
-          minMove: 0.0001,
-        },
-        crosshairMarkerVisible: false,
-      });
-
-      const lineData = validData
-        .map(d => ({
-          time: Math.floor(d.timestamp / 1000),
-          value: d.lastPrice || 0
-        }))
-        .sort((a, b) => a.time - b.time)
-        .filter((item, index, self) => 
-          index === self.findIndex(t => t.time === item.time)
-        );
-
-      lineSeries.setData(lineData);
-      areaSeries.setData(lineData);
-      
-      const lines = new Map([['Bitstamp', lineSeries]]);
-
-      return { series: null, lines };
     } else {
       const candleSeries = chart.addCandlestickSeries({
         upColor: '#26a69a',
@@ -143,10 +97,10 @@ export const useChartData = () => {
       const candleData = validData
         .map(d => ({
           time: Math.floor(d.timestamp / 1000),
-          open: d.lastPrice || 0,
-          high: d.ask || d.high || d.lastPrice || 0,
-          low: d.bid || d.low || d.lastPrice || 0,
-          close: d.ask || d.lastPrice || 0
+          open: d.open || d.lastPrice || 0,
+          high: d.high || d.ask || d.lastPrice || 0,
+          low: d.low || d.bid || d.lastPrice || 0,
+          close: d.close || d.lastPrice || 0
         }))
         .sort((a, b) => a.time - b.time)
         .filter((item, index, self) => 

@@ -3,7 +3,8 @@ export const STORAGE_PREFIX = 'cove_';
 export const STORAGE_KEYS = {
   THEME: 'theme',
   WIDGETS: 'widgets',
-  NETWORK: 'network',
+  NETWORKS: 'networks',
+  SELECTED_NETWORK: 'selected_network',
   SEED: 'seed',
   SEARCH_HISTORY: 'search_history'
 } as const;

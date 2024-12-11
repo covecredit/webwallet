@@ -4,6 +4,7 @@ import { storageService } from '../services/storage';
 import { useNetworkStore } from './networkStore';
 import { xrplService } from '../services/xrpl';
 import { balanceService } from '../services/balance';
+import { STORAGE_KEYS } from '../constants/storage';
 
 interface WalletState {
   balance: number;
@@ -17,58 +18,48 @@ interface WalletState {
   disconnect: () => Promise<void>;
   updateBalance: (balance: number, isActivated: boolean) => void;
   clearError: () => void;
+  autoConnect: () => Promise<void>;
 }
 
 export const useWalletStore = create<WalletState>((set, get) => ({
   balance: 0,
   isActivated: false,
   address: '',
-  seed: storageService.get('seed'),
+  seed: null,
   isConnected: false,
   isConnecting: false,
   error: null,
+
+  autoConnect: async () => {
+    const savedSeed = await storageService.get(STORAGE_KEYS.SEED);
+    if (savedSeed) {
+      try {
+        await get().connect(savedSeed);
+      } catch (error) {
+        console.error('Auto-connect failed:', error);
+        // Clear invalid saved data
+        storageService.remove(STORAGE_KEYS.SEED);
+      }
+    }
+  },
 
   connect: async (seed: string) => {
     try {
       set({ isConnecting: true, error: null });
       const { selectedNetwork } = useNetworkStore.getState();
       
-      // Connect to network if not already connected
-      if (!xrplService.isConnected()) {
-        console.log('Connecting to network:', selectedNetwork.name);
-        await xrplService.connect(selectedNetwork);
+      if (!selectedNetwork?.url?.startsWith('wss://')) {
+        throw new Error('Please select a valid network before connecting');
       }
 
-      // Wait for connection to stabilize
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Connection timeout'));
-        }, 10000);
+      // Connect to network
+      await xrplService.connect(selectedNetwork);
 
-        const checkConnection = () => {
-          if (xrplService.isConnected()) {
-            clearTimeout(timeout);
-            resolve();
-          }
-        };
-
-        // Check immediately and then every 100ms
-        checkConnection();
-        const interval = setInterval(checkConnection, 100);
-
-        setTimeout(() => {
-          clearInterval(interval);
-          clearTimeout(timeout);
-          reject(new Error('Connection timeout'));
-        }, 10000);
-      });
-
-      console.log('Creating wallet...');
+      // Create wallet
       const { wallet, balance } = await xrplService.createWallet(seed);
       const isActivated = balance >= 10;
 
-      console.log('Wallet created:', { address: wallet.address, balance, isActivated });
-
+      // Update state
       set({
         seed,
         address: wallet.address,
@@ -78,9 +69,10 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         error: null
       });
 
-      storageService.set('seed', seed);
+      // Store seed securely
+      await storageService.set(STORAGE_KEYS.SEED, seed);
 
-      // Start balance updates
+      // Subscribe to balance updates
       const unsubscribe = await balanceService.subscribeToBalanceUpdates(
         wallet.address,
         (newBalance, newIsActivated) => {
@@ -116,7 +108,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       isConnected: false,
       error: null
     });
-    storageService.remove('seed');
+    storageService.remove(STORAGE_KEYS.SEED);
   },
 
   updateBalance: (balance: number, isActivated: boolean) => {
@@ -127,9 +119,3 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     set({ error: null });
   }
 }));
-
-// Auto-connect if seed exists in storage
-const savedSeed = storageService.get('seed');
-if (savedSeed) {
-  useWalletStore.getState().connect(savedSeed).catch(console.error);
-}

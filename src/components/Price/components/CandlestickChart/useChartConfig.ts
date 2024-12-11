@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { ColorType, CrosshairMode } from 'lightweight-charts';
-import { ThemeColors } from '../../../../types/theme';
-import { hexToRgb } from '../../../../utils/color';
+import { ThemeColors } from '../../../../../types/theme';
+import { hexToRgb } from '../../../../../utils/color';
 
 export const useChartConfig = (colors: ThemeColors) => {
   const chartConfig = useMemo(() => ({
