@@ -1,7 +1,11 @@
-import { generateMnemonic as bip39GenerateMnemonic, validateMnemonic as bip39ValidateMnemonic, mnemonicToSeedSync } from 'bip39';
-import { Wallet } from 'xrpl';
+import {
+  generateMnemonic as bip39GenerateMnemonic,
+  validateMnemonic as bip39ValidateMnemonic,
+  mnemonicToSeedSync,
+} from 'bip39';
+import { Wallet, encodeSeed } from 'xrpl';
 import randomBytes from 'randombytes';
-import { bytesToWords, wordsToBytes } from './rfc1751';
+import { bytesToWords } from './rfc1751';
 
 // Use native crypto when available, fallback to randomBytes
 const getRandomValues = (buffer: Uint8Array): Uint8Array => {
@@ -16,15 +20,15 @@ const getRandomValues = (buffer: Uint8Array): Uint8Array => {
 export function generateMnemonic(): string[] {
   try {
     console.log('Generating new mnemonic...');
-    
+
     // Generate entropy using crypto API
     const entropy = new Uint8Array(32); // 256 bits
     getRandomValues(entropy);
-    
+
     // Convert entropy to mnemonic
     const mnemonic = bip39GenerateMnemonic(256, () => entropy);
     const words = mnemonic.split(' ');
-    
+
     console.log('Generated BIP39 mnemonic:', words);
 
     // Generate RFC1751 words for debugging
@@ -42,9 +46,9 @@ export function generateMnemonic(): string[] {
 export async function validateMnemonic(words: string[] | string): Promise<string> {
   try {
     console.log('Validating mnemonic:', words);
-    
+
     const mnemonic = Array.isArray(words) ? words.join(' ').toLowerCase() : words.toLowerCase();
-    
+
     // Validate mnemonic format
     if (!bip39ValidateMnemonic(mnemonic)) {
       console.error('Invalid BIP39 mnemonic format');
@@ -55,7 +59,7 @@ export async function validateMnemonic(words: string[] | string): Promise<string
     console.log('Generating seed from mnemonic...');
     const seed = mnemonicToSeedSync(mnemonic);
     console.log('Generated seed:', seed.toString('hex'));
-    
+
     // Take first 16 bytes of seed
     const seedBytes = seed.slice(0, 16);
     console.log('Using first 16 bytes:', seedBytes.toString('hex'));
@@ -68,16 +72,20 @@ export async function validateMnemonic(words: string[] | string): Promise<string
     const seedHex = seedBytes.toString('hex').toUpperCase();
     console.log('Final seed hex:', seedHex);
 
+    // Encode the seed using XRPL's Base58 encoding scheme
+    const encodedSeed = encodeSeed(seedBytes, 'secp256k1');
+    console.log('Encoded seed:', encodedSeed);
+
     // Validate the seed can create a valid wallet
     try {
-      const wallet = Wallet.fromSeed(seedHex);
+      const wallet = Wallet.fromSeed(encodedSeed);
       console.log('Generated wallet address:', wallet.address);
-      
+
       if (!wallet || !wallet.address) {
         throw new Error('Failed to generate valid wallet');
       }
-      
-      return seedHex;
+
+      return encodedSeed;
     } catch (error) {
       console.error('Wallet creation error:', error);
       throw new Error('Failed to create valid XRPL wallet from seed');
