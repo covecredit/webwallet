@@ -14,12 +14,6 @@ interface MainLayoutProps {
   children: React.ReactNode;
 }
 
-const notifications: Notification[] = [
-  { id: '1', message: 'XRP Price: $0.60 (+2.5%)', type: 'price' },
-  { id: '2', message: 'Network Status: Operational', type: 'system' },
-  { id: '3', message: 'Latest Block: #12345678', type: 'system' }
-];
-
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -57,12 +51,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <main 
         className={`
           relative z-10 flex-1
-          ${isMobile ? 'flex flex-col space-y-4 px-4' : ''}
+          ${isMobile ? 'flex flex-col space-y-4 px-4 pb-16' : ''}
         `}
         style={{
           paddingTop: LAYOUT.HEADER_HEIGHT,
-          paddingBottom: LAYOUT.FOOTER_HEIGHT,
-          minHeight: `calc(100vh - ${LAYOUT.HEADER_HEIGHT + LAYOUT.FOOTER_HEIGHT}px)`
+          paddingBottom: isMobile ? 0 : LAYOUT.FOOTER_HEIGHT,
+          minHeight: isMobile ? '100%' : `calc(100vh - ${LAYOUT.HEADER_HEIGHT + LAYOUT.FOOTER_HEIGHT}px)`
         }}
       >
         {children}
@@ -72,7 +66,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         className="fixed bottom-0 left-0 right-0 z-[60]"
         style={{ height: LAYOUT.FOOTER_HEIGHT }}
       >
-        <NotificationBar notifications={notifications} />
+        <NotificationBar notifications={[]} />
       </footer>
     </div>
   );

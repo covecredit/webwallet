@@ -1,93 +1,222 @@
-import React from 'react';
-import { Tent, ShoppingCart, Tag } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Tent } from 'lucide-react';
 import Widget from '../Widget/Widget';
-
-interface MarketItem {
-  id: string;
-  type: 'NFT' | 'Token';
-  name: string;
-  description: string;
-  price: number;
-  seller: string;
-}
-
-const mockItems: MarketItem[] = [
-  {
-    id: '1',
-    type: 'NFT',
-    name: 'XRPL Art #1337',
-    description: 'Unique digital artwork on XRPL',
-    price: 100,
-    seller: 'Artist_123'
-  },
-  {
-    id: '2',
-    type: 'Token',
-    name: 'Gaming Token',
-    description: 'Utility token for XRP gaming',
-    price: 50,
-    seller: 'GameStudio'
-  }
-];
+import { useWalletStore } from '../../store/walletStore';
+import { xrplService } from '../../services/xrpl';
+import { useDEXStore } from './store/dexStore';
+import { DEFAULT_TOKENS } from '../../constants/tokens';
+import ConnectWalletPrompt from './components/ConnectWalletPrompt';
+import TokenPairSelector from './components/TokenPairSelector';
+import TokenInfo from './components/TokenInfo';
+import OrderBook from './components/OrderBook';
+import PlaceOrder from './components/PlaceOrder';
+import AddTokenModal from './components/AddTokenModal';
+import SearchTokensModal from './components/SearchTokensModal';
+import NoTrustlinesPrompt from './components/NoTrustlinesPrompt';
 
 const MarketPanel: React.FC = () => {
+  const { isConnected, address } = useWalletStore();
+  const { pairs, selectedPair, setPairs, setSelectedPair, loading, setLoading, error, setError } = useDEXStore();
+  const [orderBook, setOrderBook] = useState({ bids: [], asks: [] });
+  const [showAddToken, setShowAddToken] = useState(false);
+  const [showSearchTokens, setShowSearchTokens] = useState(false);
+
+  useEffect(() => {
+    if (isConnected) {
+      loadMarketData();
+    } else {
+      // Reset state when disconnected
+      setPairs([]);
+      setSelectedPair(null);
+      setOrderBook({ bids: [], asks: [] });
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    if (selectedPair) {
+      loadOrderBook();
+    }
+  }, [selectedPair]);
+
+  const loadMarketData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const dex = xrplService.getDEX();
+      const trustLineService = dex.getTrustLineService();
+
+      // Load default tokens first
+      const defaultTokensInfo = await Promise.all(
+        DEFAULT_TOKENS.map(async (token) => {
+          try {
+            const info = await trustLineService.getTokenInfo(token.currency, token.issuer);
+            return {
+              baseToken: token.currency,
+              quoteToken: 'XRP',
+              lastPrice: 0,
+              priceUSD: 0,
+              change24h: 0,
+              volume24h: 0,
+              trustlines: info.trustlines,
+              holders: info.holders,
+              rank: 0,
+              issuerFee: 0,
+              marketCap: 0,
+              circulatingSupply: 0,
+              totalSupply: 0,
+              imageUrl: token.imageUrl,
+              issuer: token.issuer,
+              name: token.name,
+              description: token.description
+            };
+          } catch (err) {
+            console.warn(`Failed to load token info for ${token.currency}:`, err);
+            return null;
+          }
+        })
+      );
+
+      // Filter out failed token loads
+      const validTokens = defaultTokensInfo.filter(Boolean);
+
+      // If connected, add user's trustlines
+      if (address) {
+        const trustLines = await trustLineService.fetchTrustLines(address);
+        const userTokensInfo = await Promise.all(
+          trustLines.map(async (line) => {
+            try {
+              const info = await trustLineService.getTokenInfo(line.currency, line.issuer);
+              return {
+                baseToken: line.currency,
+                quoteToken: 'XRP',
+                lastPrice: 0,
+                priceUSD: 0,
+                change24h: 0,
+                volume24h: 0,
+                trustlines: info.trustlines,
+                holders: info.holders,
+                rank: 0,
+                issuerFee: 0,
+                marketCap: 0,
+                circulatingSupply: 0,
+                totalSupply: 0,
+                issuer: line.issuer
+              };
+            } catch (err) {
+              console.warn(`Failed to load trustline info:`, err);
+              return null;
+            }
+          })
+        );
+
+        // Combine default and user tokens, removing duplicates
+        const allTokens = [...validTokens, ...userTokensInfo.filter(Boolean)];
+        const uniqueTokens = Array.from(new Map(allTokens.map(t => [`${t.baseToken}-${t.issuer}`, t])).values());
+        setPairs(uniqueTokens);
+
+        // Set first token as selected if none selected
+        if (!selectedPair && uniqueTokens.length > 0) {
+          setSelectedPair(uniqueTokens[0]);
+        }
+      } else {
+        setPairs(validTokens);
+        if (!selectedPair && validTokens.length > 0) {
+          setSelectedPair(validTokens[0]);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadOrderBook = async () => {
+    if (!selectedPair) return;
+
+    try {
+      const dex = xrplService.getDEX();
+      const book = await dex.getOrderBookService().fetchOrderBook(
+        selectedPair.baseToken,
+        selectedPair.issuer,
+        'XRP'
+      );
+      setOrderBook(book);
+    } catch (err: any) {
+      console.error('Failed to load orderbook:', err);
+    }
+  };
+
+  if (!isConnected) {
+    return (
+      <Widget
+        id="market"
+        title="XRPL Market"
+        icon={Tent}
+        defaultPosition={{ x: 360, y: 80 }}
+        defaultSize={{ width: 1200, height: 800 }}
+      >
+        <ConnectWalletPrompt />
+      </Widget>
+    );
+  }
+
+  const showNoTrustlines = !loading && pairs.length === 0;
+
   return (
     <Widget
       id="market"
       title="XRPL Market"
       icon={Tent}
       defaultPosition={{ x: 360, y: 80 }}
-      defaultSize={{ width: 800, height: 500 }}
+      defaultSize={{ width: 1200, height: 800 }}
     >
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-primary">Available Items</h2>
-          <div className="flex space-x-2">
-            <button className="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors">
-              My Listings
-            </button>
-            <button className="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors">
-              Create Listing
-            </button>
+      {loading ? (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      ) : showNoTrustlines ? (
+        <NoTrustlinesPrompt
+          onSearch={() => setShowSearchTokens(true)}
+          onAddToken={() => setShowAddToken(true)}
+        />
+      ) : (
+        <div className="h-full flex flex-col md:flex-row p-4 gap-4">
+          <div className="w-full md:w-1/4 space-y-4">
+            <TokenPairSelector
+              pairs={pairs}
+              selectedPair={selectedPair}
+              onSelect={setSelectedPair}
+              onAddToken={() => setShowAddToken(true)}
+              onSearch={() => setShowSearchTokens(true)}
+            />
+          </div>
+          
+          <div className="w-full md:w-3/4 space-y-4">
+            {selectedPair && <TokenInfo pair={selectedPair} />}
+            
+            <div className="grid md:grid-cols-2 gap-4">
+              <OrderBook orderBook={orderBook} />
+              {selectedPair && <PlaceOrder pair={selectedPair} onSubmit={console.log} />}
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left border-b border-primary/20">
-                <th className="py-3 px-4 text-primary">Type</th>
-                <th className="py-3 px-4 text-primary">Name</th>
-                <th className="py-3 px-4 text-primary">Description</th>
-                <th className="py-3 px-4 text-primary">Price (XRP)</th>
-                <th className="py-3 px-4 text-primary">Seller</th>
-                <th className="py-3 px-4 text-primary">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockItems.map((item) => (
-                <tr key={item.id} className="border-b border-primary/10 hover:bg-primary/5">
-                  <td className="py-4 px-4 text-text">{item.type}</td>
-                  <td className="py-4 px-4 text-primary font-medium">{item.name}</td>
-                  <td className="py-4 px-4 text-text">{item.description}</td>
-                  <td className="py-4 px-4 text-primary">{item.price}</td>
-                  <td className="py-4 px-4 text-text">{item.seller}</td>
-                  <td className="py-4 px-4">
-                    <div className="flex space-x-2">
-                      <button className="p-2 bg-primary/20 rounded-lg hover:bg-primary/30 transition-colors">
-                        <ShoppingCart className="w-4 h-4 text-primary" />
-                      </button>
-                      <button className="p-2 bg-primary/20 rounded-lg hover:bg-primary/30 transition-colors">
-                        <Tag className="w-4 h-4 text-primary" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {showAddToken && (
+        <AddTokenModal
+          onClose={() => setShowAddToken(false)}
+          onSuccess={loadMarketData}
+        />
+      )}
+
+      {showSearchTokens && (
+        <SearchTokensModal
+          onClose={() => setShowSearchTokens(false)}
+          onSuccess={loadMarketData}
+        />
+      )}
     </Widget>
   );
 };

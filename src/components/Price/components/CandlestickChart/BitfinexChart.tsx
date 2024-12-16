@@ -62,14 +62,21 @@ export const BitfinexChart: React.FC<BitfinexChartProps> = ({ data }) => {
       },
     });
 
-    const chartData = data
-      .filter(d => d?.lastPrice && d?.timestamp)
-      .map(d => ({
-        time: Math.floor(d.timestamp / 1000),
-        value: d.lastPrice || 0,
-      }));
+    // Sort and deduplicate data
+    const uniqueData = new Map();
+    data.forEach(d => {
+      if (d?.lastPrice && d?.timestamp) {
+        uniqueData.set(d.timestamp, {
+          time: Math.floor(d.timestamp / 1000),
+          value: d.lastPrice
+        });
+      }
+    });
 
-    series.setData(chartData);
+    const sortedData = Array.from(uniqueData.values())
+      .sort((a, b) => a.time - b.time);
+
+    series.setData(sortedData);
     chartRef.current.timeScale().fitContent();
 
     const handleResize = () => {

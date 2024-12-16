@@ -10,6 +10,9 @@ coverage
 dist
 build
 
+# Vite
+.vite
+
 # Misc
 .DS_Store
 .env.local

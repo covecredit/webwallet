@@ -24,10 +24,8 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
     if (!isRecovery) {
       try {
         const words = generateMnemonic();
-        console.log('Generated mnemonic words:', words);
         setMnemonic(words);
       } catch (error: any) {
-        console.error('Failed to generate mnemonic:', error);
         setError(error.message || 'Failed to generate wallet');
       }
     }
@@ -48,7 +46,6 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
     const text = e.clipboardData.getData('text');
     const words = text.trim().split(/\s+/);
     if (words.length === 24) {
-      console.log('Pasting mnemonic words:', words);
       setUserInput(words);
     }
   };
@@ -79,17 +76,16 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
       }
 
       if (!hasAcknowledged) {
-        throw new Error('Please acknowledge that you have written down your recovery phrase');
+        throw new Error(isRecovery 
+          ? 'Please acknowledge that you will never share this phrase'
+          : 'Please acknowledge that you have written down your recovery phrase'
+        );
       }
 
-      console.log('Validating mnemonic...');
       const seed = await validateMnemonic(isRecovery ? userInput : mnemonic);
-      console.log('Generated seed:', seed);
-      
       await connect(seed);
       onClose();
     } catch (error: any) {
-      console.error('Wallet creation error:', error);
       setError(error.message || 'Failed to create wallet');
     } finally {
       setIsProcessing(false);
@@ -117,7 +113,7 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-3 bg-background/50 p-3 rounded-lg border border-primary/20">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-background/50 p-4 rounded-lg border border-primary/20">
               {mnemonic.map((word, index) => (
                 <div
                   key={index}
@@ -197,7 +193,7 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
             )}
 
             <div 
-              className="grid grid-cols-4 gap-4 bg-background/50 p-4 rounded-lg border border-primary/20"
+              className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-background/50 p-4 rounded-lg border border-primary/20"
               onPaste={handlePaste}
             >
               {userInput.map((word, index) => (
@@ -207,8 +203,7 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
                     type="text"
                     value={word}
                     onChange={(e) => handleInputChange(index, e.target.value)}
-                    className="flex-1 px-3 py-2 bg-background/30 border border-primary/20 rounded
-                             text-sm font-mono focus:outline-none focus:border-primary"
+                    className="flex-1 px-3 py-2 bg-background/30 border border-primary/20 rounded text-sm font-mono focus:outline-none focus:border-primary"
                     placeholder={`Word ${index + 1}`}
                     spellCheck="false"
                     autoComplete="off"
@@ -227,7 +222,10 @@ const NewWalletModal: React.FC<NewWalletModalProps> = ({ onClose }) => {
                 className="rounded border-primary/30 text-primary focus:ring-primary"
                 disabled={isProcessing}
               />
-              <span>I have written down my recovery phrase in a secure location</span>
+              <span>{isRecovery 
+                ? "I will never give this phrase to anyone or type it into unknown websites"
+                : "I have written down my recovery phrase in a secure location"
+              }</span>
             </label>
 
             {error && (

@@ -55,9 +55,21 @@ export const themes = {
   },
   sunset: {
     primary: '#FF6B6B',
-    secondary: '#FFA07A',
-    background: '#2D1F2D',
+    secondary: '#FFB347',
+    background: '#2D1B2E',
     text: '#FFE4E1'
+  },
+  neon: {
+    primary: '#00FF9F',
+    secondary: '#00B8FF',
+    background: '#0D1117',
+    text: '#E6E8E6'
+  },
+  cyber: {
+    primary: '#FF00FF',
+    secondary: '#00FFFF',
+    background: '#1A1A2E',
+    text: '#E6E8E6'
   }
 } as const;
 
@@ -73,5 +85,7 @@ export const themeNames = {
   orange: 'Amber',
   teal: 'Turquoise',
   pink: 'Rose Quartz',
-  sunset: 'Sunset'
+  sunset: 'Sunset',
+  neon: 'Neon',
+  cyber: 'Cyberpunk'
 } as const;
