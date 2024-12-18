@@ -16,12 +16,7 @@ interface WidgetProps {
 
 const Widget: React.FC<WidgetProps> = (props) => {
   const isMobile = useMediaQuery(`(max-width: ${BREAKPOINTS.MOBILE}px)`);
-
-  return isMobile ? (
-    <MobileWidget {...props} />
-  ) : (
-    <DesktopWidget {...props} />
-  );
+  return isMobile ? <MobileWidget {...props} /> : <DesktopWidget {...props} />;
 };
 
 export default Widget;

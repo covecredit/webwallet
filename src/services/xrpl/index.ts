@@ -2,13 +2,12 @@ import { Client, Wallet } from 'xrpl';
 import { DEXService } from './dex';
 import { NetworkConfig } from '../../types/network';
 import { XRPLError } from './errors';
+import { connectionService } from './connection';
 
 class XRPLService {
   private static instance: XRPLService;
-  private client: Client | null = null;
-  private wallet: Wallet | null = null;
   private dexService: DEXService | null = null;
-  private network: NetworkConfig | null = null;
+  private wallet: Wallet | null = null;
 
   private constructor() {}
 
@@ -20,68 +19,42 @@ class XRPLService {
   }
 
   async connect(network: NetworkConfig): Promise<void> {
-    if (this.client?.isConnected() && this.network?.id === network.id) {
-      return;
-    }
-
-    await this.disconnect();
-
     try {
-      this.client = new Client(network.url, {
-        timeout: 20000,
-        connectionTimeout: 15000,
-        retry: {
-          maxAttempts: 3,
-          minDelay: 1000,
-          maxDelay: 5000
-        }
-      });
-
-      await this.client.connect();
-      this.network = network;
+      await connectionService.connect(network);
+      const client = connectionService.getClient();
+      if (!client) throw new Error('Failed to initialize client');
       
-      // Initialize DEX service after successful connection
-      if (!this.dexService) {
-        this.dexService = new DEXService(this.client);
-      }
-      
-      console.log('Connected to XRPL network:', network.name);
+      // Initialize DEX service with connected client
+      this.dexService = new DEXService(client);
     } catch (error) {
-      console.error('Connection error:', error);
+      console.error('XRPL connection error:', error);
       throw new XRPLError('CONNECTION_ERROR', 'Failed to connect to XRPL network', error);
     }
   }
 
   async disconnect(): Promise<void> {
-    if (this.client?.isConnected()) {
-      await this.client.disconnect();
-    }
-    this.client = null;
-    this.wallet = null;
     this.dexService = null;
-    this.network = null;
+    this.wallet = null;
+    await connectionService.disconnect();
   }
 
   getDEX(): DEXService {
-    if (!this.client?.isConnected()) {
-      throw new Error('Not connected to network');
-    }
     if (!this.dexService) {
-      throw new Error('DEX service not initialized');
+      throw new XRPLError('SERVICE_ERROR', 'DEX service not initialized');
     }
     return this.dexService;
   }
 
   getClient(): Client | null {
-    return this.client;
+    return connectionService.getClient();
   }
 
   isConnected(): boolean {
-    return this.client?.isConnected() || false;
+    return connectionService.isConnected();
   }
 
   getCurrentNetwork(): NetworkConfig | null {
-    return this.network;
+    return connectionService.getCurrentNetwork();
   }
 }
 

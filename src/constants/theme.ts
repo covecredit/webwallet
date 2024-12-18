@@ -60,15 +60,15 @@ export const themes = {
     text: '#FFE4E1'
   },
   neon: {
-    primary: '#00FF9F',
-    secondary: '#00B8FF',
-    background: '#0D1117',
-    text: '#E6E8E6'
+    primary: '#00FF41', // Matrix green
+    secondary: '#39FF14', // Bright lime green
+    background: '#0D0208', // Very dark background
+    text: '#33FF33' // Matrix text green
   },
   cyber: {
-    primary: '#FF00FF',
-    secondary: '#00FFFF',
-    background: '#1A1A2E',
+    primary: '#00FFFF', // Neon cyan/blue
+    secondary: '#0099FF', // Bright blue
+    background: '#000B1E', // Dark blue-black
     text: '#E6E8E6'
   }
 } as const;
@@ -86,6 +86,6 @@ export const themeNames = {
   teal: 'Turquoise',
   pink: 'Rose Quartz',
   sunset: 'Sunset',
-  neon: 'Neon',
+  neon: 'Matrix',
   cyber: 'Cyberpunk'
 } as const;

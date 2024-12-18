@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1A1B26" />
     <meta name="color-scheme" content="dark" />
+    <meta name="description" content="A modern XRPL wallet interface" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
     <title>COVE Wallet</title>
     <style>
       /* Prevent white flash */
@@ -85,6 +89,23 @@
         <div class="spinner"></div>
       </div>
     </div>
+    <script>
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(
+            registration => console.log('ServiceWorker registration successful'),
+            err => console.log('ServiceWorker registration failed:', err)
+          );
+        });
+      }
+
+      // Handle PWA install prompt
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPrompt = e;
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

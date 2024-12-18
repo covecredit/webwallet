@@ -18,8 +18,8 @@ const Logo: React.FC<LogoProps> = ({ className = '' }) => {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
     >
-      {!isMobile && <Anchor className="w-6 h-6 text-primary" />}
-      <div className="flex items-center text-xl font-bold">
+      <Anchor className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} text-primary`} />
+      <div className={`flex items-center ${isMobile ? 'text-lg' : 'text-xl'} font-bold`}>
         <span className="text-text">C</span>
         <span className="relative mx-0.5">
           <span className="text-text">O</span>

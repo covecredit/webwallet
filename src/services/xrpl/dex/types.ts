@@ -1,4 +1,17 @@
-import { Amount, IssuedCurrencyAmount } from 'xrpl';
+import { Amount } from 'xrpl';
+
+export interface TokenInfo {
+  currency: string;
+  issuer: string;
+  name?: string;
+  description?: string;
+  imageUrl?: string | null;
+  balance?: string;
+  trustlines?: number;
+  holders?: number;
+  frozen?: boolean;
+  network?: 'mainnet' | 'testnet' | 'devnet';
+}
 
 export interface TrustLine {
   account: string;
@@ -10,13 +23,11 @@ export interface TrustLine {
   frozen: boolean;
 }
 
-export interface TokenInfo {
+export interface CreateTrustLineParams {
+  account: string;
   currency: string;
   issuer: string;
-  balance: string;
-  trustlines: number;
-  holders: number;
-  frozen: boolean;
+  limit: string;
 }
 
 export interface OrderBookOffer {
@@ -33,12 +44,5 @@ export interface PlaceOrderParams {
   side: 'buy' | 'sell';
   takerGets: Amount;
   takerPays: Amount;
-  account: string;
-}
-
-export interface CreateTrustLineParams {
-  currency: string;
-  issuer: string;
-  limit: string;
   account: string;
 }

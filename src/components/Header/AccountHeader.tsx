@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Key, Plus, Trash2, Settings } from 'lucide-react';
+import { Key, Plus, Trash2, Settings, X } from 'lucide-react';
 import { useWalletStore } from '../../store/walletStore';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { BREAKPOINTS } from '../../constants/layout';
 import ConnectWalletModal from '../Wallet/ConnectWalletModal';
 import NewWalletModal from '../Wallet/NewWalletModal';
 import ForgetMeModal from './ForgetMeModal';
 import SettingsModal from './SettingsModal';
+import DisconnectModal from './DisconnectModal';
 import { clearStorage } from '../../utils/storage';
 
 const AccountHeader: React.FC = () => {
@@ -16,7 +17,13 @@ const AccountHeader: React.FC = () => {
   const [showNewWalletModal, setShowNewWalletModal] = useState(false);
   const [showForgetMeModal, setShowForgetMeModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const isMobile = useMediaQuery(`(max-width: ${BREAKPOINTS.MOBILE}px)`);
+
+  const handleDisconnect = async () => {
+    await disconnect();
+    setShowDisconnectModal(false);
+  };
 
   return (
     <div className={`flex items-center ${isMobile ? 'space-x-1' : 'space-x-2'}`}>
@@ -24,11 +31,11 @@ const AccountHeader: React.FC = () => {
         <motion.button 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          onClick={() => disconnect()}
-          className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors"
+          onClick={() => setShowDisconnectModal(true)}
+          className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
           title="Disconnect"
         >
-          <Key className="w-5 h-5" />
+          <X className="w-5 h-5" />
         </motion.button>
       ) : (
         <div className={`flex items-center ${isMobile ? 'space-x-1' : 'space-x-2'}`}>
@@ -90,6 +97,13 @@ const AccountHeader: React.FC = () => {
         <SettingsModal
           isOpen={showSettingsModal}
           onClose={() => setShowSettingsModal(false)}
+        />
+      )}
+      {showDisconnectModal && (
+        <DisconnectModal
+          isOpen={showDisconnectModal}
+          onClose={() => setShowDisconnectModal(false)}
+          onConfirm={handleDisconnect}
         />
       )}
     </div>

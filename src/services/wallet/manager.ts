@@ -2,8 +2,9 @@ import { Wallet } from 'xrpl';
 import { walletStorageService } from './storage';
 import { xrplService } from '../xrpl';
 import { EventEmitter } from '../../utils/EventEmitter';
+import { passphraseService } from '../crypto/passphrase';
 
-export class WalletManager extends EventEmitter {
+class WalletManager extends EventEmitter {
   private static instance: WalletManager;
   private wallet: Wallet | null = null;
 
@@ -20,12 +21,21 @@ export class WalletManager extends EventEmitter {
 
   async createWallet(seed: string): Promise<{ wallet: Wallet; balance: number; isActivated: boolean }> {
     try {
+      // Create wallet first
       console.log('Creating wallet from seed...');
       this.wallet = Wallet.fromSeed(seed);
       
-      // Save seed securely
-      await walletStorageService.saveSeed(seed);
-      
+      // Try to save if passphrase is set
+      if (passphraseService.hasPassphrase()) {
+        try {
+          await walletStorageService.saveSeed(seed);
+          console.log('Wallet seed encrypted and stored');
+        } catch (error) {
+          console.error('Failed to save wallet seed:', error);
+        }
+      }
+
+      // Get account info
       const { balance, isActivated } = await this.getAccountInfo();
       
       this.emit('walletCreated', {
@@ -35,23 +45,37 @@ export class WalletManager extends EventEmitter {
       });
 
       return { wallet: this.wallet, balance, isActivated };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create wallet:', error);
+      this.wallet = null;
       throw error;
     }
   }
 
   async loadSavedWallet(): Promise<{ wallet: Wallet; balance: number; isActivated: boolean } | null> {
     try {
-      const savedSeed = await walletStorageService.loadSeed();
-      if (!savedSeed) {
+      // Check if we have both encrypted data and passphrase
+      if (!walletStorageService.hasStoredSeed() || !passphraseService.hasPassphrase()) {
         return null;
       }
 
-      return await this.createWallet(savedSeed);
-    } catch (error) {
+      const seed = await walletStorageService.loadSeed();
+      if (!seed) {
+        console.log('No saved wallet found');
+        return null;
+      }
+
+      // Create new wallet from saved seed
+      console.log('Creating wallet from saved seed...');
+      this.wallet = Wallet.fromSeed(seed);
+
+      // Get account info
+      const { balance, isActivated } = await this.getAccountInfo();
+
+      return { wallet: this.wallet, balance, isActivated };
+    } catch (error: any) {
       console.error('Failed to load saved wallet:', error);
-      return null;
+      throw error;
     }
   }
 
@@ -102,6 +126,10 @@ export class WalletManager extends EventEmitter {
 
   getWallet(): Wallet | null {
     return this.wallet;
+  }
+
+  hasStoredWallet(): boolean {
+    return walletStorageService.hasStoredSeed();
   }
 }
 

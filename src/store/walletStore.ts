@@ -119,8 +119,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       delete (window as any).__balanceUnsubscribe;
     }
 
+    // Clear wallet and disconnect
     await walletManager.clearWallet();
-    await xrplService.disconnect();
     
     set({
       wallet: null,

@@ -23,26 +23,45 @@ interface WidgetState {
 
 const isMobile = () => window.innerWidth <= BREAKPOINTS.MOBILE;
 
+const getInitialWidgets = (): Widget[] => {
+  const savedWidgets = loadFromStorage<Widget[]>(STORAGE_KEYS.WIDGETS);
+  if (!savedWidgets?.length) {
+    return [
+      {
+        id: 'wallet',
+        isVisible: false,
+        isMinimized: false,
+        x: LAYOUT.WIDGET_MARGIN,
+        y: LAYOUT.HEADER_HEIGHT + LAYOUT.WIDGET_MARGIN,
+        width: 400,
+        height: 500,
+        zIndex: 1
+      },
+      {
+        id: 'price',
+        isVisible: false,
+        isMinimized: false,
+        x: 440,
+        y: LAYOUT.HEADER_HEIGHT + LAYOUT.WIDGET_MARGIN,
+        width: 1000,
+        height: 600,
+        zIndex: 1
+      }
+    ];
+  }
+  return savedWidgets;
+};
+
 const validatePosition = (widget: Widget): Widget => {
   if (isMobile()) {
-    const visibleWidgets = loadFromStorage<Widget[]>(STORAGE_KEYS.WIDGETS)?.filter(w => w.isVisible) || [];
-    const widgetIndex = visibleWidgets.findIndex(w => w.id === widget.id);
-    let yPosition = LAYOUT.HEADER_HEIGHT;
-    
-    for (let i = 0; i < widgetIndex; i++) {
-      yPosition += visibleWidgets[i].height + LAYOUT.MOBILE_WIDGET_SPACING;
-    }
-
     return {
       ...widget,
       x: LAYOUT.MOBILE_PADDING,
-      y: yPosition,
       width: window.innerWidth - (LAYOUT.MOBILE_PADDING * 2),
-      height: Math.min(widget.height, window.innerHeight - yPosition - LAYOUT.FOOTER_HEIGHT)
+      height: Math.min(widget.height, window.innerHeight - LAYOUT.HEADER_HEIGHT - LAYOUT.FOOTER_HEIGHT)
     };
   }
 
-  // Desktop positioning
   const maxX = window.innerWidth - widget.width;
   const maxY = window.innerHeight - widget.height - LAYOUT.FOOTER_HEIGHT;
   const minY = LAYOUT.HEADER_HEIGHT;
@@ -57,7 +76,7 @@ const validatePosition = (widget: Widget): Widget => {
 };
 
 export const useWidgetStore = create<WidgetState>((set, get) => ({
-  widgets: [],
+  widgets: getInitialWidgets(),
   
   updateWidget: (widget) => set((state) => {
     const existingWidgetIndex = state.widgets.findIndex((w) => w.id === widget.id);

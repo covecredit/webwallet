@@ -44,8 +44,11 @@ export const MobileWidget: React.FC<MobileWidgetProps> = ({
   return (
     <motion.div
       layout
-      className="w-full bg-background border border-primary/30 rounded-lg overflow-hidden mb-3 mx-auto"
-      style={{ maxWidth: window.innerWidth - (LAYOUT.MOBILE_PADDING * 2) }}
+      className="w-full bg-background border border-primary/30 rounded-lg overflow-hidden mb-3"
+      style={{ 
+        maxWidth: window.innerWidth - (LAYOUT.MOBILE_PADDING * 2),
+        marginTop: LAYOUT.WIDGET_MARGIN
+      }}
       animate={{
         height: widget.isMinimized ? LAYOUT.MOBILE_HEADER_ACTIONS_HEIGHT : widget.height
       }}

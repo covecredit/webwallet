@@ -1,27 +1,23 @@
 import React from 'react';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
-import { LAYOUT, BREAKPOINTS } from '../../constants/layout';
-import { useWidgetStore } from '../../store/widgetStore';
+import { LAYOUT } from '../../constants/layout';
 
-export const MobileLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isMobile = useMediaQuery(`(max-width: ${BREAKPOINTS.MOBILE}px)`);
-  const { widgets } = useWidgetStore();
-  
-  if (!isMobile) return <>{children}</>;
+interface MobileLayoutProps {
+  children: React.ReactNode;
+}
 
-  const visibleWidgets = widgets.filter(w => w.isVisible && !w.isMinimized);
-  const totalHeight = visibleWidgets.reduce((acc, w) => acc + w.height + LAYOUT.MOBILE_WIDGET_SPACING, 0);
-
+export const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
   return (
-    <div 
-      className="flex flex-col w-full overflow-x-hidden"
+    <main 
+      className="relative z-10 flex-1 px-4"
       style={{
-        minHeight: `${totalHeight + LAYOUT.HEADER_HEIGHT + LAYOUT.FOOTER_HEIGHT}px`,
-        paddingTop: LAYOUT.HEADER_HEIGHT,
-        paddingBottom: LAYOUT.FOOTER_HEIGHT
+        paddingTop: LAYOUT.HEADER_HEIGHT + LAYOUT.WIDGET_MARGIN,
+        paddingBottom: LAYOUT.FOOTER_HEIGHT + LAYOUT.WIDGET_MARGIN,
+        minHeight: `calc(100vh - ${LAYOUT.HEADER_HEIGHT + LAYOUT.FOOTER_HEIGHT}px)`
       }}
     >
-      {children}
-    </div>
+      <div className="space-y-3">
+        {children}
+      </div>
+    </main>
   );
 };
