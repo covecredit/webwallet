@@ -1,49 +1,40 @@
-```typescript
 import { Client } from 'xrpl';
 import { NetworkConfig } from '../../types/network';
-import { connectionManager, ConnectionState } from './ConnectionManager';
+import { EventEmitter } from '../../utils/EventEmitter';
+import { ConnectionState } from './state';
 import { ConnectionError } from './errors';
+import { RetryStrategy } from './retry';
+import { ConnectionValidator } from './validator';
 
-export class ConnectionService {
-  private static instance: ConnectionService;
+export class ConnectionService extends EventEmitter {
   private client: Client | null = null;
+  private retryStrategy: RetryStrategy;
   private connectionPromise: Promise<void> | null = null;
+  private currentNetwork: NetworkConfig | null = null;
 
-  private constructor() {}
-
-  static getInstance(): ConnectionService {
-    if (!ConnectionService.instance) {
-      ConnectionService.instance = new ConnectionService();
-    }
-    return ConnectionService.instance;
+  constructor() {
+    super();
+    this.retryStrategy = new RetryStrategy();
   }
 
   async connect(network: NetworkConfig): Promise<void> {
-    if (this.connectionPromise) {
-      return this.connectionPromise;
-    }
-
-    if (this.client?.isConnected() && connectionManager.getNetwork()?.id === network.id) {
-      return;
-    }
-
-    this.connectionPromise = this.establishConnection(network);
-
     try {
-      await this.connectionPromise;
-    } finally {
-      this.connectionPromise = null;
-    }
-  }
+      // Validate network configuration
+      ConnectionValidator.validateNetwork(network);
 
-  private async establishConnection(network: NetworkConfig): Promise<void> {
-    try {
-      connectionManager.setState(ConnectionState.CONNECTING);
-      connectionManager.setNetwork(network);
-      console.log('Connecting to', network.name);
+      // Check if already connected to the same network
+      if (this.client?.isConnected() && this.currentNetwork?.id === network.id) {
+        return;
+      }
 
+      // Ensure clean state before connecting
       await this.disconnect();
+      this.currentNetwork = network;
 
+      console.log('Connecting to', network.name);
+      this.emit('connecting', network);
+
+      // Create and configure client
       this.client = new Client(network.url, {
         timeout: 20000,
         connectionTimeout: 15000,
@@ -54,67 +45,62 @@ export class ConnectionService {
         }
       });
 
-      await new Promise<void>((resolve, reject) => {
-        if (!this.client) {
-          reject(new ConnectionError('Client not initialized'));
-          return;
-        }
+      // Set up event handlers
+      this.setupEventHandlers();
 
-        const timeoutId = setTimeout(() => {
-          reject(new ConnectionError('Connection timeout'));
-        }, 20000);
+      // Attempt connection
+      await this.client.connect();
+      
+      console.log('Connected successfully to', network.name);
+      this.emit('connected', network);
+      this.retryStrategy.reset();
 
-        this.client.on('connected', () => {
-          clearTimeout(timeoutId);
-          connectionManager.setState(ConnectionState.CONNECTED);
-          console.log('Connected to', network.name);
-          resolve();
-        });
-
-        this.client.on('disconnected', () => {
-          console.log('Disconnected from network');
-          connectionManager.setState(ConnectionState.DISCONNECTED);
-          if (!connectionManager.isConnecting()) {
-            this.scheduleReconnect();
-          }
-        });
-
-        this.client.on('error', (error) => {
-          console.error('Client error:', error);
-          connectionManager.setState(ConnectionState.ERROR, error);
-          if (!connectionManager.isConnecting()) {
-            this.scheduleReconnect();
-          }
-        });
-
-        this.client.connect().catch(reject);
-      });
     } catch (error) {
       console.error('Connection error:', error);
-      connectionManager.setState(ConnectionState.ERROR, error as Error);
       
-      if (connectionManager.canReconnect()) {
-        await new Promise(resolve => setTimeout(resolve, connectionManager.getReconnectDelay()));
-        return this.establishConnection(network);
+      if (this.retryStrategy.shouldRetry()) {
+        console.log(`Retrying connection (attempt ${this.retryStrategy.getAttempts() + 1})...`);
+        await this.retryStrategy.wait();
+        return this.connect(network);
       }
-      
+
+      this.emit('error', new ConnectionError('Failed to connect after maximum retries'));
       throw error;
     }
   }
 
-  private scheduleReconnect(): void {
-    const network = connectionManager.getNetwork();
-    if (!network || !connectionManager.canReconnect()) return;
+  private setupEventHandlers(): void {
+    if (!this.client) return;
 
-    connectionManager.setState(ConnectionState.RECONNECTING);
-    const delay = connectionManager.getReconnectDelay();
+    this.client.on('connected', () => {
+      this.emit('connected', this.currentNetwork);
+    });
+
+    this.client.on('disconnected', () => {
+      this.emit('disconnected');
+      if (this.retryStrategy.shouldRetry()) {
+        this.reconnect();
+      }
+    });
+
+    this.client.on('error', (error) => {
+      console.error('Client error:', error);
+      this.emit('error', error);
+      if (this.retryStrategy.shouldRetry()) {
+        this.reconnect();
+      }
+    });
+  }
+
+  private async reconnect(): Promise<void> {
+    if (!this.currentNetwork) return;
     
-    console.log(`Scheduling reconnect in ${delay}ms`);
-    setTimeout(() => {
-      this.connect(network).catch(error => {
-        console.error('Reconnection failed:', error);
-      });
-    }, delay);
+    try {
+      await this.retryStrategy.wait();
+      await this.connect(this.currentNetwork);
+    } catch (error) {
+      console.error('Reconnection failed:', error);
+    }
   }
 
   async disconnect(): Promise<void> {
@@ -128,8 +114,8 @@ export class ConnectionService {
         console.error('Error during disconnect:', error);
       } finally {
         this.client = null;
-        connectionManager.setState(ConnectionState.DISCONNECTED);
-        connectionManager.setNetwork(null);
+        this.currentNetwork = null;
+        this.emit('disconnected');
       }
     }
   }
@@ -139,13 +125,12 @@ export class ConnectionService {
   }
 
   isConnected(): boolean {
-    return connectionManager.isConnected();
+    return this.client?.isConnected() || false;
   }
 
   getCurrentNetwork(): NetworkConfig | null {
-    return connectionManager.getNetwork();
+    return this.currentNetwork;
   }
 }
 
-export const connectionService = ConnectionService.getInstance();
-```
+export const connectionService = new ConnectionService();

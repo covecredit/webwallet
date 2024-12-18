@@ -1,26 +1,40 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, MessageCircle, Plus, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, MessageCircle, Plus, AlertTriangle, Loader } from 'lucide-react';
 import Widget from '../Widget/Widget';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore } from '../../store/chatStore';
 import { useWalletStore } from '../../store/walletStore';
-import { xmtpService } from '../../services/xmtp';
 import { formatDistanceToNow } from 'date-fns';
 
 const ChatWidget: React.FC = () => {
-  const { messages, conversations, activeConversation, sendMessage, loadMessages, loadConversations } = useChatStore();
-  const { isConnected, address } = useWalletStore();
+  const { messages, conversations, activeConversation, sendMessage, loadMessages, loadConversations, initialize } = useChatStore();
+  const { isConnected, wallet } = useWalletStore();
   const [input, setInput] = useState('');
   const [newChat, setNewChat] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isConnected) {
-      loadConversations().catch(console.error);
-    }
-  }, [isConnected]);
+    const initChat = async () => {
+      if (isConnected && wallet) {
+        try {
+          setIsInitializing(true);
+          setError(null);
+          await initialize();
+          await loadConversations();
+        } catch (error: any) {
+          console.error('Chat initialization failed:', error);
+          setError(error.message || 'Failed to initialize chat');
+        } finally {
+          setIsInitializing(false);
+        }
+      }
+    };
+
+    initChat();
+  }, [isConnected, wallet]);
 
   useEffect(() => {
     if (activeConversation) {
@@ -52,10 +66,11 @@ const ChatWidget: React.FC = () => {
     if (!newChat.trim()) return;
     
     try {
+      setError(null);
+      await loadMessages(newChat);
       await sendMessage('👋 Hello!');
       setNewChat('');
       setShowNewChat(false);
-      setError(null);
     } catch (error: any) {
       setError(error.message);
     }
@@ -72,6 +87,23 @@ const ChatWidget: React.FC = () => {
       >
         <div className="flex items-center justify-center h-full text-text/50">
           Connect your wallet to use chat
+        </div>
+      </Widget>
+    );
+  }
+
+  if (isInitializing) {
+    return (
+      <Widget
+        id="chat"
+        title="CØVE Chat"
+        icon={MessageCircle}
+        defaultPosition={{ x: window.innerWidth - 340, y: 80 }}
+        defaultSize={{ width: 320, height: 400 }}
+      >
+        <div className="flex flex-col items-center justify-center h-full space-y-4">
+          <Loader className="w-8 h-8 text-primary animate-spin" />
+          <div className="text-text/50">Initializing chat...</div>
         </div>
       </Widget>
     );
@@ -123,12 +155,12 @@ const ChatWidget: React.FC = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className={`flex ${msg.sender === address ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${msg.sender === wallet?.address ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
                     className={`
                       max-w-[80%] p-3 rounded-lg
-                      ${msg.sender === address 
+                      ${msg.sender === wallet?.address 
                         ? 'bg-primary/20 text-primary' 
                         : 'bg-background/50 text-text'}
                     `}

@@ -1,8 +1,8 @@
-import { exchangeManager } from '../exchanges';
 import { EventEmitter } from '../../utils/EventEmitter';
-import { InitializationOptions } from './types';
+import { connectionService } from '../connection';
+import { NetworkConfig } from '../../types/network';
 
-class InitializationService extends EventEmitter {
+export class InitializationService extends EventEmitter {
   private static instance: InitializationService;
   private isInitializing = false;
   private initPromise: Promise<void> | null = null;
@@ -18,39 +18,52 @@ class InitializationService extends EventEmitter {
     return InitializationService.instance;
   }
 
-  async initialize(): Promise<void> {
+  async initialize(network: NetworkConfig): Promise<void> {
     if (this.isInitializing) {
       return this.initPromise!;
     }
 
     this.isInitializing = true;
-    this.initPromise = this.performInitialization();
+    this.initPromise = this.performInitialization(network);
 
     try {
       await this.initPromise;
+      this.emit('complete');
+    } catch (error) {
+      this.emit('error', error);
+      throw error;
     } finally {
       this.isInitializing = false;
       this.initPromise = null;
     }
   }
 
-  private async performInitialization(): Promise<void> {
+  private async performInitialization(network: NetworkConfig): Promise<void> {
     try {
-      // Initialize market data feeds only
-      this.emit('status', 'Initializing market data...');
-      await exchangeManager.connect();
+      this.emit('status', 'Connecting to XRPL network...');
+      
+      // Set up connection event handlers
+      connectionService.on('connecting', () => {
+        this.emit('status', 'Establishing connection...');
+      });
 
-      // Complete initialization
-      this.emit('complete');
+      connectionService.on('error', (error) => {
+        this.emit('status', `Connection error: ${error.message}`);
+      });
+
+      // Connect to network
+      await connectionService.connect(network);
+      
+      this.emit('status', 'Connected successfully');
+
     } catch (error) {
-      console.error('Market data initialization error:', error);
-      this.emit('error', error);
-      // Don't throw error to allow app to load even if market data fails
+      console.error('Initialization failed:', error);
+      throw error;
     }
   }
 
   async cleanup(): Promise<void> {
-    await exchangeManager.disconnect();
+    await connectionService.disconnect();
   }
 }
 

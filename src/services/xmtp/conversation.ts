@@ -4,7 +4,6 @@ import { EventEmitter } from '../../utils/EventEmitter';
 import { ConversationError } from './errors';
 import { validateAddress } from './validation';
 import { XMTP_CONSTANTS } from './constants';
-import { connectionStateManager, ConnectionState } from './state';
 
 export class ConversationManager extends EventEmitter {
   private conversations: Map<string, Conversation> = new Map();
@@ -13,44 +12,18 @@ export class ConversationManager extends EventEmitter {
 
   constructor(private client: Client) {
     super();
-    this.setupStreamTimeout();
-  }
-
-  private setupStreamTimeout(): void {
-    if (this.streamTimeout) {
-      clearTimeout(this.streamTimeout);
-    }
-    this.streamTimeout = setTimeout(() => {
-      if (connectionStateManager.isConnected()) {
-        this.restartConversationStream().catch(console.error);
-      }
-    }, XMTP_CONSTANTS.STREAM_TIMEOUT);
-  }
-
-  private async restartConversationStream(): Promise<void> {
-    try {
-      await this.cleanup();
-      await this.startConversationStream();
-    } catch (error) {
-      console.error('Failed to restart conversation stream:', error);
-      connectionStateManager.setState(ConnectionState.ERROR, error as Error);
-    }
   }
 
   async startConversationStream(): Promise<void> {
     try {
-      connectionStateManager.setState(ConnectionState.CONNECTING);
+      console.log('Starting conversation stream...');
       const stream = await this.client.conversations.stream();
       
       for await (const conversation of stream) {
         await this.handleNewConversation(conversation);
       }
-      
-      connectionStateManager.setState(ConnectionState.CONNECTED);
-      this.setupStreamTimeout();
     } catch (error) {
       console.error('Error in conversation stream:', error);
-      connectionStateManager.setState(ConnectionState.ERROR, error as Error);
       throw new ConversationError('Failed to start conversation stream');
     }
   }
@@ -61,6 +34,7 @@ export class ConversationManager extends EventEmitter {
       return;
     }
 
+    console.log('New conversation with:', conversation.peerAddress);
     this.conversations.set(conversation.peerAddress, conversation);
 
     try {
@@ -84,6 +58,15 @@ export class ConversationManager extends EventEmitter {
     }
   }
 
+  private async restartConversationStream(): Promise<void> {
+    try {
+      await this.cleanup();
+      await this.startConversationStream();
+    } catch (error) {
+      console.error('Failed to restart conversation stream:', error);
+    }
+  }
+
   private handleNewMessage(message: DecodedMessage, peerAddress: string): void {
     try {
       const formattedMessage: Message = {
@@ -94,6 +77,8 @@ export class ConversationManager extends EventEmitter {
         timestamp: message.sent,
         conversation: peerAddress
       };
+      
+      console.log('New message:', formattedMessage);
       this.emit('message', formattedMessage);
     } catch (error) {
       console.error('Error handling message:', error);
@@ -108,6 +93,7 @@ export class ConversationManager extends EventEmitter {
     let conversation = this.conversations.get(peerAddress);
     if (!conversation) {
       try {
+        console.log('Creating new conversation with:', peerAddress);
         conversation = await this.client.conversations.newConversation(peerAddress);
         this.conversations.set(peerAddress, conversation);
       } catch (error) {
@@ -137,6 +123,5 @@ export class ConversationManager extends EventEmitter {
     }
     this.messageListeners.clear();
     this.conversations.clear();
-    connectionStateManager.reset();
   }
 }

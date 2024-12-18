@@ -1,16 +1,15 @@
 import { create } from 'zustand';
 import { Wallet } from 'xrpl';
-import { storageService } from '../services/storage';
 import { useNetworkStore } from './networkStore';
 import { xrplService } from '../services/xrpl';
+import { walletManager } from '../services/wallet/manager';
 import { balanceService } from '../services/balance';
-import { STORAGE_KEYS } from '../constants/storage';
 
 interface WalletState {
   balance: number;
   isActivated: boolean;
   address: string;
-  seed: string | null;
+  wallet: Wallet | null;
   isConnected: boolean;
   isConnecting: boolean;
   error: string | null;
@@ -25,21 +24,46 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   balance: 0,
   isActivated: false,
   address: '',
-  seed: null,
+  wallet: null,
   isConnected: false,
   isConnecting: false,
   error: null,
 
   autoConnect: async () => {
-    const savedSeed = await storageService.get(STORAGE_KEYS.SEED);
-    if (savedSeed) {
-      try {
-        await get().connect(savedSeed);
-      } catch (error) {
-        console.error('Auto-connect failed:', error);
-        // Clear invalid saved data
-        storageService.remove(STORAGE_KEYS.SEED);
+    try {
+      const { selectedNetwork } = useNetworkStore.getState();
+      
+      // Connect to network first
+      await xrplService.connect(selectedNetwork);
+
+      // Try to load saved wallet
+      const result = await walletManager.loadSavedWallet();
+      if (result) {
+        const { wallet, balance, isActivated } = result;
+        
+        set({
+          wallet,
+          address: wallet.address,
+          balance,
+          isActivated,
+          isConnected: true,
+          error: null
+        });
+
+        // Subscribe to balance updates
+        const unsubscribe = await balanceService.subscribeToBalanceUpdates(
+          wallet.address,
+          (newBalance, newIsActivated) => {
+            set({ balance: newBalance, isActivated: newIsActivated });
+          }
+        );
+
+        // Store unsubscribe function for cleanup
+        (window as any).__balanceUnsubscribe = unsubscribe;
       }
+    } catch (error: any) {
+      console.error('Auto-connect failed:', error);
+      set({ error: error.message || 'Failed to auto-connect wallet' });
     }
   },
 
@@ -56,21 +80,17 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       await xrplService.connect(selectedNetwork);
 
       // Create wallet
-      const { wallet, balance } = await xrplService.createWallet(seed);
-      const isActivated = balance >= 10;
+      const { wallet, balance, isActivated } = await walletManager.createWallet(seed);
 
       // Update state
       set({
-        seed,
+        wallet,
         address: wallet.address,
         balance,
         isActivated,
         isConnected: true,
         error: null
       });
-
-      // Store seed securely
-      await storageService.set(STORAGE_KEYS.SEED, seed);
 
       // Subscribe to balance updates
       const unsubscribe = await balanceService.subscribeToBalanceUpdates(
@@ -99,16 +119,17 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       delete (window as any).__balanceUnsubscribe;
     }
 
+    await walletManager.clearWallet();
     await xrplService.disconnect();
+    
     set({
-      seed: null,
+      wallet: null,
       address: '',
       balance: 0,
       isActivated: false,
       isConnected: false,
       error: null
     });
-    storageService.remove(STORAGE_KEYS.SEED);
   },
 
   updateBalance: (balance: number, isActivated: boolean) => {

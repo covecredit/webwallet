@@ -27,11 +27,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   initialize: async () => {
     try {
-      const wallet = useWalletStore.getState().wallet;
+      const { wallet } = useWalletStore.getState();
       if (!wallet) {
         throw new Error('Wallet not connected');
       }
 
+      set({ isLoading: true, error: null });
       await xmtpService.initialize(wallet);
       
       // Subscribe to new messages
@@ -47,7 +48,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Load initial conversations
       await get().loadConversations();
     } catch (error: any) {
+      console.error('Chat initialization failed:', error);
       set({ error: error.message });
+      throw error;
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -68,9 +73,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
 
     try {
+      set({ error: null });
       await xmtpService.sendMessage(activeConversation, content);
-      // Message will be added through the message event listener
     } catch (error: any) {
+      console.error('Failed to send message:', error);
       set({ error: error.message });
       throw error;
     }
@@ -82,6 +88,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const messages = await xmtpService.getMessages(address);
       set({ messages, activeConversation: address });
     } catch (error: any) {
+      console.error('Failed to load messages:', error);
       set({ error: error.message });
       throw error;
     } finally {
@@ -95,6 +102,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const conversations = await xmtpService.listConversations();
       set({ conversations });
     } catch (error: any) {
+      console.error('Failed to load conversations:', error);
       set({ error: error.message });
       throw error;
     } finally {

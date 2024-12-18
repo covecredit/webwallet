@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Key, Lock, Trash2, Settings, Plus } from 'lucide-react';
+import { Key, Plus, Trash2, Settings } from 'lucide-react';
 import { useWalletStore } from '../../store/walletStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { BREAKPOINTS } from '../../constants/layout';
 import ConnectWalletModal from '../Wallet/ConnectWalletModal';
 import NewWalletModal from '../Wallet/NewWalletModal';
 import ForgetMeModal from './ForgetMeModal';
@@ -15,122 +16,83 @@ const AccountHeader: React.FC = () => {
   const [showNewWalletModal, setShowNewWalletModal] = useState(false);
   const [showForgetMeModal, setShowForgetMeModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const isMobile = useMediaQuery('(max-width: 768px)');
-
-  const handleConnect = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowConnectModal(true);
-  };
-
-  const handleNewWallet = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowNewWalletModal(true);
-  };
-
-  const handleDisconnect = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    disconnect();
-  };
-
-  const handleForgetMe = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowForgetMeModal(true);
-  };
-
-  const handleConfirmForgetMe = () => {
-    clearStorage();
-    window.location.reload();
-  };
+  const isMobile = useMediaQuery(`(max-width: ${BREAKPOINTS.MOBILE}px)`);
 
   return (
-    <>
-      <div className="flex items-center space-x-2">
-        {isConnected ? (
-          <>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-primary bg-background flex items-center justify-center"
-            >
-              <span className="text-xl md:text-2xl">🎉</span>
-            </motion.div>
-            <motion.button 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              onClick={handleDisconnect}
-              className="flex items-center space-x-2 hover:text-primary text-primary/70 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-colors duration-200 text-sm md:text-base"
-            >
-              <Lock className="w-4 h-4 md:w-5 md:h-5" />
-              <span>Disconnect</span>
-            </motion.button>
-          </>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-gray-400 bg-background flex items-center justify-center"
-            >
-              <span className="text-xl md:text-2xl text-gray-400">?</span>
-            </motion.div>
-            <motion.button 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              onClick={handleConnect}
-              className="flex items-center space-x-2 hover:text-primary text-primary/70 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-colors duration-200 text-sm md:text-base"
-            >
-              <Key className="w-4 h-4 md:w-5 md:h-5" />
-              <span>Connect</span>
-            </motion.button>
-            <motion.button 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              onClick={handleNewWallet}
-              className="flex items-center space-x-2 hover:text-primary text-primary/70 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-colors duration-200 text-sm md:text-base"
-            >
-              <Plus className="w-4 h-4 md:w-5 md:h-5" />
-              <span>New Wallet</span>
-            </motion.button>
-          </div>
-        )}
-        <div className="flex items-center space-x-2">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleForgetMe}
-            className="p-2 rounded-lg hover:text-primary text-primary/70 transition-colors duration-200"
+    <div className={`flex items-center ${isMobile ? 'space-x-1' : 'space-x-2'}`}>
+      {isConnected ? (
+        <motion.button 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          onClick={() => disconnect()}
+          className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors"
+          title="Disconnect"
+        >
+          <Key className="w-5 h-5" />
+        </motion.button>
+      ) : (
+        <div className={`flex items-center ${isMobile ? 'space-x-1' : 'space-x-2'}`}>
+          <motion.button 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => setShowConnectModal(true)}
+            className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors"
+            title="Connect Wallet"
           >
-            <Trash2 className="w-5 h-5 md:w-6 md:h-6" />
+            <Key className="w-5 h-5" />
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowSettingsModal(true)}
-            className="p-2 rounded-lg hover:text-primary text-primary/70 transition-colors duration-200"
+          <motion.button 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => setShowNewWalletModal(true)}
+            className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors"
+            title="New Wallet"
           >
-            <Settings className="w-5 h-5 md:w-6 md:h-6" />
+            <Plus className="w-5 h-5" />
           </motion.button>
         </div>
+      )}
+
+      <div className={`flex items-center ${isMobile ? 'space-x-1' : 'space-x-2'}`}>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowForgetMeModal(true)}
+          className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-colors"
+          title="Clear Data"
+        >
+          <Trash2 className="w-5 h-5" />
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowSettingsModal(true)}
+          className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-colors"
+          title="Settings"
+        >
+          <Settings className="w-5 h-5" />
+        </motion.button>
       </div>
 
-      <AnimatePresence>
-        {showConnectModal && <ConnectWalletModal onClose={() => setShowConnectModal(false)} />}
-        {showNewWalletModal && <NewWalletModal onClose={() => setShowNewWalletModal(false)} />}
-        {showForgetMeModal && (
-          <ForgetMeModal
-            isOpen={showForgetMeModal}
-            onClose={() => setShowForgetMeModal(false)}
-            onConfirm={handleConfirmForgetMe}
-          />
-        )}
-        {showSettingsModal && (
-          <SettingsModal
-            isOpen={showSettingsModal}
-            onClose={() => setShowSettingsModal(false)}
-          />
-        )}
-      </AnimatePresence>
-    </>
+      {showConnectModal && <ConnectWalletModal onClose={() => setShowConnectModal(false)} />}
+      {showNewWalletModal && <NewWalletModal onClose={() => setShowNewWalletModal(false)} />}
+      {showForgetMeModal && (
+        <ForgetMeModal
+          isOpen={showForgetMeModal}
+          onClose={() => setShowForgetMeModal(false)}
+          onConfirm={() => {
+            clearStorage();
+            window.location.reload();
+          }}
+        />
+      )}
+      {showSettingsModal && (
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+        />
+      )}
+    </div>
   );
 };
 

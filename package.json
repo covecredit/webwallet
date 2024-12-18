@@ -12,7 +12,7 @@
   "dependencies": {
     "@radix-ui/react-dialog": "1.0.5",
     "@radix-ui/react-dropdown-menu": "2.0.6",
-    "@xmtp/xmtp-js": "11.4.1",
+    "@xmtp/xmtp-js": "11.3.10",
     "bip39": "3.1.0",
     "buffer": "6.0.3",
     "crypto-browserify": "3.12.0",

@@ -1,8 +1,10 @@
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { BREAKPOINTS } from '../../../constants/layout';
+import { formatValue, formatVolume } from '../../../utils/format';
 import type { PriceData } from '../../../types';
 import type { ExchangeName } from '../../../services/exchanges';
-import { formatValue, formatVolume } from '../../../utils/format';
 
 interface PriceStatsProps {
   exchangeData: Record<string, PriceData[]>;
@@ -10,6 +12,8 @@ interface PriceStatsProps {
 }
 
 const PriceStats: React.FC<PriceStatsProps> = ({ exchangeData, selectedExchange }) => {
+  const isMobile = useMediaQuery(`(max-width: ${BREAKPOINTS.MOBILE}px)`);
+
   const getLatestData = (): PriceData | null => {
     if (selectedExchange === 'All') {
       let totalVolume = 0;
@@ -44,7 +48,7 @@ const PriceStats: React.FC<PriceStatsProps> = ({ exchangeData, selectedExchange 
   if (!latestData) return null;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+    <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-4 gap-4'} text-sm`}>
       <div className="bg-background/50 rounded-lg p-3 border border-primary/30">
         <div className="text-text/70 mb-1">Last Price</div>
         <div className="text-lg font-bold text-primary">
@@ -73,22 +77,6 @@ const PriceStats: React.FC<PriceStatsProps> = ({ exchangeData, selectedExchange 
           <div className="text-text/70 mb-1">24h Low</div>
           <div className="text-lg font-bold text-primary">
             ${formatValue(latestData.low)}
-          </div>
-        </div>
-      )}
-
-      {typeof latestData.dailyChangePercent === 'number' && (
-        <div className="bg-background/50 rounded-lg p-3 border border-primary/30">
-          <div className="text-text/70 mb-1">24h Change</div>
-          <div className={`text-lg font-bold flex items-center space-x-1 ${
-            latestData.dailyChangePercent >= 0 ? 'text-green-400' : 'text-red-400'
-          }`}>
-            {latestData.dailyChangePercent >= 0 ? (
-              <TrendingUp className="w-5 h-5" />
-            ) : (
-              <TrendingDown className="w-5 h-5" />
-            )}
-            <span>{Math.abs(latestData.dailyChangePercent).toFixed(2)}%</span>
           </div>
         </div>
       )}

@@ -5,6 +5,10 @@ import { useWalletStore } from '../../store/walletStore';
 import { xrplService } from '../../services/xrpl';
 import { useDEXStore } from './store/dexStore';
 import { DEFAULT_TOKENS } from '../../constants/tokens';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { BREAKPOINTS, LAYOUT } from '../../constants/layout';
+
+// Component imports
 import ConnectWalletPrompt from './components/ConnectWalletPrompt';
 import TokenPairSelector from './components/TokenPairSelector';
 import TokenInfo from './components/TokenInfo';
@@ -20,6 +24,7 @@ const MarketPanel: React.FC = () => {
   const [orderBook, setOrderBook] = useState({ bids: [], asks: [] });
   const [showAddToken, setShowAddToken] = useState(false);
   const [showSearchTokens, setShowSearchTokens] = useState(false);
+  const isMobile = useMediaQuery(`(max-width: ${BREAKPOINTS.MOBILE}px)`);
 
   useEffect(() => {
     if (isConnected) {
@@ -112,7 +117,9 @@ const MarketPanel: React.FC = () => {
 
         // Combine default and user tokens, removing duplicates
         const allTokens = [...validTokens, ...userTokensInfo.filter(Boolean)];
-        const uniqueTokens = Array.from(new Map(allTokens.map(t => [`${t.baseToken}-${t.issuer}`, t])).values());
+        const uniqueTokens = Array.from(
+          new Map(allTokens.map(t => [`${t.baseToken}-${t.issuer}`, t])).values()
+        );
         setPairs(uniqueTokens);
 
         // Set first token as selected if none selected
@@ -155,7 +162,10 @@ const MarketPanel: React.FC = () => {
         title="XRPL Market"
         icon={Tent}
         defaultPosition={{ x: 360, y: 80 }}
-        defaultSize={{ width: 1200, height: 800 }}
+        defaultSize={{ 
+          width: isMobile ? window.innerWidth - (LAYOUT.MOBILE_PADDING * 2) : 1200, 
+          height: isMobile ? 400 : 800 
+        }}
       >
         <ConnectWalletPrompt />
       </Widget>
@@ -170,7 +180,10 @@ const MarketPanel: React.FC = () => {
       title="XRPL Market"
       icon={Tent}
       defaultPosition={{ x: 360, y: 80 }}
-      defaultSize={{ width: 1200, height: 800 }}
+      defaultSize={{ 
+        width: isMobile ? window.innerWidth - (LAYOUT.MOBILE_PADDING * 2) : 1200, 
+        height: isMobile ? 600 : 800 
+      }}
     >
       {loading ? (
         <div className="flex items-center justify-center h-full">
@@ -182,21 +195,19 @@ const MarketPanel: React.FC = () => {
           onAddToken={() => setShowAddToken(true)}
         />
       ) : (
-        <div className="h-full flex flex-col md:flex-row p-4 gap-4">
-          <div className="w-full md:w-1/4 space-y-4">
+        <div className={`h-full flex ${isMobile ? 'flex-col' : 'flex-row'} p-4 gap-4`}>
+          <div className={`${isMobile ? 'w-full' : 'w-1/4'} space-y-4`}>
             <TokenPairSelector
               pairs={pairs}
               selectedPair={selectedPair}
               onSelect={setSelectedPair}
-              onAddToken={() => setShowAddToken(true)}
-              onSearch={() => setShowSearchTokens(true)}
             />
           </div>
           
-          <div className="w-full md:w-3/4 space-y-4">
+          <div className={`${isMobile ? 'w-full' : 'w-3/4'} space-y-4`}>
             {selectedPair && <TokenInfo pair={selectedPair} />}
             
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               <OrderBook orderBook={orderBook} />
               {selectedPair && <PlaceOrder pair={selectedPair} onSubmit={console.log} />}
             </div>

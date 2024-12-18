@@ -1,12 +1,16 @@
 import React from 'react';
 import { Anchor } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { BREAKPOINTS } from '../../constants/layout';
 
 interface LogoProps {
   className?: string;
 }
 
 const Logo: React.FC<LogoProps> = ({ className = '' }) => {
+  const isMobile = useMediaQuery(`(max-width: ${BREAKPOINTS.MOBILE}px)`);
+
   return (
     <motion.div 
       className={`flex items-center space-x-2 ${className}`}
@@ -14,7 +18,7 @@ const Logo: React.FC<LogoProps> = ({ className = '' }) => {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Anchor className="w-6 h-6 text-primary" />
+      {!isMobile && <Anchor className="w-6 h-6 text-primary" />}
       <div className="flex items-center text-xl font-bold">
         <span className="text-text">C</span>
         <span className="relative mx-0.5">

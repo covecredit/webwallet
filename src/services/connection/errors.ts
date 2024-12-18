@@ -1,13 +1,13 @@
-```typescript
+
 export class ConnectionError extends Error {
-  constructor(message: string) {
+  constructor(message: string, public cause?: Error) {
     super(message);
     this.name = 'ConnectionError';
   }
 }
 
 export class NetworkError extends Error {
-  constructor(message: string) {
+  constructor(message: string, public cause?: Error) {
     super(message);
     this.name = 'NetworkError';
   }
@@ -19,4 +19,3 @@ export class TimeoutError extends Error {
     this.name = 'TimeoutError';
   }
 }
-```
