@@ -2,7 +2,13 @@ import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { KrakenStatsProps } from './types';
 import { StatCard } from './StatCard';
-import { formatValue, formatVolume, formatCount, calculatePriceChange, extractSafeStats } from './utils';
+import {
+  formatValue,
+  formatVolume,
+  formatCount,
+  calculatePriceChange,
+  extractSafeStats,
+} from './utils';
 
 const KrakenStats: React.FC<KrakenStatsProps> = ({ data }) => {
   // Early return if no data
@@ -37,9 +43,11 @@ const KrakenStats: React.FC<KrakenStatsProps> = ({ data }) => {
           label="Last Price"
           value={`$${formatValue(stats.lastPrice)}`}
           subValue={
-            <div className={`flex items-center space-x-1 text-xs ${
-              priceChange >= 0 ? 'text-green-400' : 'text-red-400'
-            }`}>
+            <div
+              className={`flex items-center space-x-1 text-xs ${
+                priceChange >= 0 ? 'text-green-400' : 'text-red-400'
+              }`}
+            >
               {priceChange >= 0 ? (
                 <TrendingUp className="w-3 h-3" />
               ) : (
@@ -54,8 +62,11 @@ const KrakenStats: React.FC<KrakenStatsProps> = ({ data }) => {
           label="24h Volume"
           value={`${formatVolume(stats.volume)} XRP`}
           // Only show trade count if it exists and is valid
-          subValue={typeof stats.count === 'number' && stats.count > 0 ? 
-            `${formatCount(stats.count)} trades` : undefined}
+          subValue={
+            typeof stats.count === 'number' && stats.count > 0
+              ? `${formatCount(stats.count)} trades`
+              : undefined
+          }
         />
 
         <StatCard
@@ -64,11 +75,7 @@ const KrakenStats: React.FC<KrakenStatsProps> = ({ data }) => {
           subValue={`Low: $${formatValue(stats.low)}`}
         />
 
-        <StatCard
-          label="VWAP"
-          value={`$${formatValue(stats.vwap)}`}
-          subValue="24h weighted avg"
-        />
+        <StatCard label="VWAP" value={`$${formatValue(stats.vwap)}`} subValue="24h weighted avg" />
       </div>
 
       {/* Secondary Stats Row */}
@@ -90,15 +97,11 @@ const KrakenStats: React.FC<KrakenStatsProps> = ({ data }) => {
           <StatCard
             label="Spread"
             value={`$${formatValue(stats.ask - stats.bid)}`}
-            subValue={`${((stats.ask - stats.bid) / stats.ask * 100).toFixed(3)}%`}
+            subValue={`${(((stats.ask - stats.bid) / stats.ask) * 100).toFixed(3)}%`}
           />
         )}
 
-        <StatCard
-          label="Market Status"
-          value="Active"
-          subValue="Real-time data"
-        />
+        <StatCard label="Market Status" value="Active" subValue="Real-time data" />
       </div>
     </div>
   );
