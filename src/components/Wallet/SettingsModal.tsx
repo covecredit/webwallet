@@ -6,8 +6,6 @@ import { Download, Trash2, Lock, Check, Terminal } from 'lucide-react';
 import Modal from '../Modal/Modal';
 import { pwaManager } from '../../utils/pwa';
 import { passphraseService } from '../../services/crypto/passphrase';
-import { walletStorageService } from '../../services/wallet/storage';
-import { useWalletStore } from '../../store/walletStore';
 import PassphraseModal from '../Wallet/PassphraseModal';
 
 interface SettingsModalProps {
@@ -18,11 +16,9 @@ interface SettingsModalProps {
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { currentTheme, setTheme } = useThemeStore();
   const { isDeveloperMode, toggleDeveloperMode } = useSettingsStore();
-  const { isConnected } = useWalletStore();
   const [showPassphraseModal, setShowPassphraseModal] = useState(false);
   const [canInstallPWA, setCanInstallPWA] = useState(false);
   const isPWAInstalled = pwaManager.isPWA();
-  const hasStoredSeed = walletStorageService.hasStoredSeed();
 
   useEffect(() => {
     const checkPWAStatus = () => {
@@ -58,27 +54,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const getPassphraseStatus = () => {
-    if (!passphraseService.hasPassphrase()) {
-      return {
-        text: hasStoredSeed ? 'Locked' : 'Not Set',
-        color: 'text-red-400'
-      };
-    }
-    return {
-      text: hasStoredSeed ? 'Unlocked' : 'Set',
-      color: 'text-green-400'
-    };
-  };
-
-  const handlePassphraseClick = () => {
-    if (!passphraseService.hasPassphrase() || !isConnected) {
-      setShowPassphraseModal(true);
-    }
-  };
-
-  const status = getPassphraseStatus();
-
   if (!isOpen) return null;
 
   return (
@@ -88,26 +63,30 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           {/* Security Section */}
           <div>
             <h3 className="text-sm font-medium text-text/70 mb-3">Security</h3>
-            <button
-              onClick={handlePassphraseClick}
-              disabled={passphraseService.hasPassphrase() && isConnected}
-              className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                passphraseService.hasPassphrase() && isConnected
-                  ? 'bg-primary/10'
-                  : 'bg-primary/10 hover:bg-primary/20'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <Lock className="w-5 h-5 text-primary" />
-                <span>Wallet Passphrase</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                {passphraseService.hasPassphrase() && (
+            {!passphraseService.hasPassphrase() && (
+              <button
+                onClick={() => setShowPassphraseModal(true)}
+                className="w-full flex items-center justify-between p-3 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
+              >
+                <div className="flex items-center space-x-2">
+                  <Lock className="w-5 h-5 text-primary" />
+                  <span>Set Wallet Passphrase</span>
+                </div>
+                <span className="text-red-400 text-sm">Not Set</span>
+              </button>
+            )}
+            {passphraseService.hasPassphrase() && (
+              <div className="w-full flex items-center justify-between p-3 bg-primary/10 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Lock className="w-5 h-5 text-primary" />
+                  <span>Wallet Passphrase</span>
+                </div>
+                <div className="flex items-center space-x-2">
                   <Check className="w-4 h-4 text-green-400" />
-                )}
-                <span className={status.color}>{status.text}</span>
+                  <span className="text-green-400 text-sm">Set</span>
+                </div>
               </div>
-            </button>
+            )}
           </div>
 
           {/* Theme Selection */}

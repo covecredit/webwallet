@@ -20,7 +20,7 @@ class WalletStorageService extends EventEmitter {
   async saveSeed(seed: string): Promise<void> {
     try {
       if (!passphraseService.hasPassphrase()) {
-        throw new Error('Passphrase required to store wallet');
+        throw new Error('Please set a passphrase before saving wallet');
       }
 
       console.log('Encrypting wallet seed...');
@@ -30,17 +30,21 @@ class WalletStorageService extends EventEmitter {
       this.emit('seedStored');
     } catch (error) {
       console.error('Failed to save wallet seed:', error);
-      throw new Error('Failed to securely store wallet');
+      throw error;
     }
   }
 
   async loadSeed(): Promise<string | null> {
     try {
       const encryptedSeed = await storageService.get(STORAGE_KEYS.SEED);
-      if (!encryptedSeed) return null;
+      if (!encryptedSeed) {
+        console.log('No encrypted seed found');
+        return null;
+      }
 
       if (!passphraseService.hasPassphrase()) {
-        throw new Error('PASSPHRASE_REQUIRED');
+        console.log('Cannot load seed: No passphrase set');
+        throw new Error('Please enter your passphrase to unlock the wallet');
       }
 
       console.log('Decrypting wallet seed...');
@@ -49,10 +53,7 @@ class WalletStorageService extends EventEmitter {
       return seed;
     } catch (error: any) {
       console.error('Failed to load wallet seed:', error);
-      if (error.message === 'PASSPHRASE_REQUIRED') {
-        throw error;
-      }
-      throw new Error('Failed to decrypt wallet');
+      throw error;
     }
   }
 

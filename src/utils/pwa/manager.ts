@@ -1,4 +1,5 @@
-import { EventEmitter } from './EventEmitter';
+import { EventEmitter } from '../EventEmitter';
+import { PWAInstallOutcome } from './types';
 
 class PWAManager extends EventEmitter {
   private deferredPrompt: any = null;
@@ -33,7 +34,7 @@ class PWAManager extends EventEmitter {
            document.referrer.includes('android-app://');
   }
 
-  async install(): Promise<'accepted' | 'dismissed'> {
+  async install(): Promise<PWAInstallOutcome> {
     if (!this.deferredPrompt) {
       throw new Error('Installation prompt not available');
     }

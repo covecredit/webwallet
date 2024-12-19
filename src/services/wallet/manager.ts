@@ -25,13 +25,15 @@ class WalletManager extends EventEmitter {
       console.log('Creating wallet from seed...');
       this.wallet = Wallet.fromSeed(seed);
       
-      // Try to save if passphrase is set
+      // Save seed if passphrase is set
       if (passphraseService.hasPassphrase()) {
         try {
+          // Always save the new seed when creating a wallet
           await walletStorageService.saveSeed(seed);
           console.log('Wallet seed encrypted and stored');
         } catch (error) {
           console.error('Failed to save wallet seed:', error);
+          throw error; // Propagate error since saving is critical
         }
       }
 
@@ -56,6 +58,7 @@ class WalletManager extends EventEmitter {
     try {
       // Check if we have both encrypted data and passphrase
       if (!walletStorageService.hasStoredSeed() || !passphraseService.hasPassphrase()) {
+        console.log('Cannot load wallet: Missing seed or passphrase');
         return null;
       }
 

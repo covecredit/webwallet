@@ -24,6 +24,7 @@ class PassphraseService extends EventEmitter {
 
   async setPassphrase(passphrase: string): Promise<void> {
     if (!passphrase) throw new Error('Passphrase is required');
+    if (passphrase.length < 8) throw new Error('Passphrase must be at least 8 characters');
 
     try {
       // If there's existing encrypted data, try to decrypt it first
@@ -110,7 +111,7 @@ class PassphraseService extends EventEmitter {
       return new TextDecoder().decode(decrypted);
     } catch (error) {
       console.error('Decryption failed:', error);
-      throw new Error('Failed to decrypt data');
+      throw new Error('Invalid passphrase');
     }
   }
 
@@ -151,6 +152,7 @@ class PassphraseService extends EventEmitter {
   clearPassphrase(): void {
     this.passphrase = null;
     this.attempts = 0;
+    this.emit('cleared');
   }
 }
 

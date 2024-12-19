@@ -6,7 +6,8 @@ export const STORAGE_KEYS = {
   NETWORKS: 'networks',
   SELECTED_NETWORK: 'selected_network',
   SEED: 'seed',
-  SEARCH_HISTORY: 'search_history'
+  SEARCH_HISTORY: 'search_history',
+  DEVELOPER_MODE: 'developer_mode'
 } as const;
 
 export type StorageKey = keyof typeof STORAGE_KEYS;
